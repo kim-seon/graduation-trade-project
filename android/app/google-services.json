@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "927009103459",
+    "project_id": "rntradebookproject",
+    "storage_bucket": "rntradebookproject.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:927009103459:android:7c7cace5a3fc372517e256",
+        "android_client_info": {
+          "package_name": "com.project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "927009103459-hk4vejmtkuv000dq25ohrqhq8hb7ps1l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.project",
+            "certificate_hash": "bbb30345cd73b96a85d031a6e4d903f9b48c79bb"
+          }
+        },
+        {
+          "client_id": "927009103459-tskg5tjhpivaok8i1q8s8b0vj49b9k0i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClWClKeXtNr3I5KziAM6AbRmwpXCxJCLg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "927009103459-tskg5tjhpivaok8i1q8s8b0vj49b9k0i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

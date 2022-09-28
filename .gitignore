@@ -29,7 +29,7 @@ build/
 local.properties
 *.iml
 *.hprof
-
+google-services.json
 # node.js
 #
 node_modules/

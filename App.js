@@ -10,7 +10,6 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import TabNavigation from './src/navigations/Tab';
-import LoginScreen from './src/screens/LoginScreen/LoginScreen';
 
 const Stack = createStackNavigator();
 

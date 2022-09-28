@@ -8,7 +8,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const RegisterScreen = () => {
-  const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [userConfPassword, setUseConfPassword] = useState('');
   const [userNickname, setUserNickname] = useState('');
@@ -18,15 +17,11 @@ const RegisterScreen = () => {
 
   const onLoginPressed = () => {
     setErrortext('');
-    if (!userEmail) {
-      Alert.alert('이메일 입력은 필수입니다!');
-      return;
-    }
     if (!userPassword) {
       Alert.alert('비밀번호 입력은 필수입니다!');
     }
     setLoading(true);
-    let data = {email: userEmail, password: userPassword};
+    let data = {password: userPassword};
     let body = [];
   };
 
@@ -36,19 +31,11 @@ const RegisterScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
-        <View style={{marginBottom: 15}}>
-          <Ionicons name="person-add" size={35} color={'#00ADB5'} />
-        </View>
         <View style={styles.registerTextContainer}>
           <Text style={styles.registerText}>트레이북</Text>
-          <Text style={styles.registerTextDsc}>| 회원가입</Text>
+          <Text style={styles.registerTextDsc}>| 이어서 회원가입하기</Text>
         </View>
       </View>
-      <CustomInput
-        value={userEmail}
-        setValue={setUserEmail}
-        placeholder="본인의 대학교 이메일 주소"
-      />
       <CustomInput
         value={userNickname}
         setValue={setUserNickname}
@@ -77,7 +64,7 @@ const styles = StyleSheet.create({
     height: '100%',
     display: 'flex',
     justifyContent: 'center',
-    backgroundColor: '#222831',
+    backgroundColor: '#F2F2F2',
   },
   textContainer: {
     width: '80%',
@@ -92,17 +79,17 @@ const styles = StyleSheet.create({
   },
   registerTextDsc: {
     fontSize: 18,
-    color: '#00ADB5',
+    color: '#21D380',
   },
   registerText: {
     fontSize: 24,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 5,
     marginRight: 10,
     padding: 5,
-    color: '#EEEEEE',
+    color: '#F2F2F2',
     borderRadius: 5,
-    backgroundColor: '#00ADB5',
+    backgroundColor: '#21D380',
     alignSelf: 'flex-start',
   },
   registerContainer: {

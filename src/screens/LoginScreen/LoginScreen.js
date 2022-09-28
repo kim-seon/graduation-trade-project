@@ -35,7 +35,7 @@ const LoginScreen = () => {
     <View style={styles.container}>
       <View style={styles.textContainer}>
         <View style={{marginBottom: 15}}>
-          <Ionicons name="md-lock-closed" size={35} color={'#00ADB5'} />
+          <Ionicons name="md-lock-closed" size={35} color={'#21D380'} />
         </View>
         <View style={styles.loginTextContainer}>
           <Text style={styles.loginText}>트레이북</Text>
@@ -54,20 +54,10 @@ const LoginScreen = () => {
         secureTextEntry
       />
       <CustomButton onPress={onLoginPressed} text="로 그 인" />
-      <View
-        style={{
-          width: '80%',
-          marginTop: 30,
-          marginBottom: 18,
-          borderWidth: 1,
-          borderColor: '#EEEEEE',
-          alignSelf: 'center',
-        }}
-      />
       <View style={styles.registerContainer}>
-        <Text style={{color: '#EEEEEE'}}>아직 회원이 아니신가요?</Text>
+        <Text style={{color: '#393E46'}}>아직 회원이 아니신가요?</Text>
         <Pressable onPress={onRegisterPressed}>
-          <Text style={{color: '#00ADB5', marginLeft: 10}}>회원가입</Text>
+          <Text style={{color: '#06de96', marginLeft: 10}}>회원가입</Text>
         </Pressable>
       </View>
     </View>
@@ -80,7 +70,7 @@ const styles = StyleSheet.create({
     height: '100%',
     display: 'flex',
     justifyContent: 'center',
-    backgroundColor: '#222831',
+    backgroundColor: '#F2F2F2',
   },
   textContainer: {
     width: '80%',
@@ -95,20 +85,21 @@ const styles = StyleSheet.create({
   },
   loginTextDsc: {
     fontSize: 18,
-    color: '#00ADB5',
+    color: '#21D380',
   },
   loginText: {
     fontSize: 24,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 5,
     marginRight: 10,
     padding: 5,
-    color: '#EEEEEE',
+    color: '#F2F2F2',
     borderRadius: 5,
-    backgroundColor: '#00ADB5',
+    backgroundColor: '#21D380',
     alignSelf: 'flex-start',
   },
   registerContainer: {
+    marginTop: 18,
     flexDirection: 'row',
     alignSelf: 'center',
   },
