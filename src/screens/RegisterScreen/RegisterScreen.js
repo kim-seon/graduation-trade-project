@@ -1,13 +1,26 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, {useState, createRef} from 'react';
-import {View, Text, StyleSheet, Pressable, Alert} from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
+import {signIn, signUp} from '../../lib/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+export const userCollection = firestore().collection('users');
+
 const RegisterScreen = () => {
+  const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [userConfPassword, setUseConfPassword] = useState('');
   const [userNickname, setUserNickname] = useState('');
@@ -15,26 +28,51 @@ const RegisterScreen = () => {
   const [errortext, setErrortext] = useState('');
   const passwordInputRef = createRef();
 
-  const onLoginPressed = () => {
-    setErrortext('');
-    if (!userPassword) {
-      Alert.alert('비밀번호 입력은 필수입니다!');
+  const onRegisterPressed = () => {
+    //const info = {userEmail, userPassword};
+    if (userEmail === '') {
+      return Alert.alert('이메일 입력');
+    } else if (userPassword === '') {
+      return Alert.alert('비밀번호 입력');
     }
     setLoading(true);
-    let data = {password: userPassword};
-    let body = [];
-  };
-
-  const onRegisterPressed = () => {
-    console.warn('onRegisterPressed');
+    auth()
+      .createUserWithEmailAndPassword(userEmail, userPassword)
+      .then(userCredentials => {
+        console.log(userCredentials.user);
+        auth()
+          .currentUser.updateProfile({
+            displayName: userNickname,
+          })
+          .then(() => {
+            userCollection.add({
+              id: userCredentials.user.uid,
+              email: userCredentials.user.email,
+              nickname: auth().currentUser.displayName,
+            });
+          });
+      })
+      .catch(function (err) {
+        Alert.alert(err);
+      });
   };
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
         <View style={styles.registerTextContainer}>
           <Text style={styles.registerText}>트레이북</Text>
-          <Text style={styles.registerTextDsc}>| 이어서 회원가입하기</Text>
+          <Text style={styles.registerTextDsc}>| 회원가입</Text>
         </View>
+      </View>
+      <View style={styles.emailAuthContainer}>
+        <CustomInput
+          value={userEmail}
+          setValue={setUserEmail}
+          placeholder="대학교 이메일 주소를 입력해주세요!"
+        />
+        <TouchableOpacity style={styles.emailAuthBtn}>
+          <Text style={styles.emailAuthText}>인증</Text>
+        </TouchableOpacity>
       </View>
       <CustomInput
         value={userNickname}
@@ -53,7 +91,7 @@ const RegisterScreen = () => {
         placeholder="비밀번호 확인"
         secureTextEntry
       />
-      <CustomButton onPress={onLoginPressed} text="회 원 가 입" />
+      <CustomButton onPress={onRegisterPressed} text="회 원 가 입" />
     </View>
   );
 };
@@ -95,6 +133,25 @@ const styles = StyleSheet.create({
   registerContainer: {
     flexDirection: 'row',
     alignSelf: 'center',
+  },
+  emailAuthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  emailAuthBtn: {
+    position: 'absolute',
+    right: 45,
+    top: 4,
+    backgroundColor: '#21D380',
+    height: 40,
+    width: 40,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emailAuthText: {
+    fontSize: 15,
+    color: 'white',
   },
 });
 

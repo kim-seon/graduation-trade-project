@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
 
 export const MyPageScreen = () => {
@@ -10,10 +10,14 @@ export const MyPageScreen = () => {
         <Text style={styles.mySchoolName}>강남대학교</Text>
       </View>
       <View style={styles.sellBookContainer}>
-        <Text style={styles.listText}>> 판매하는 책 목록</Text>
+        <TouchableOpacity style={styles.listText}>
+          <Text>> 판매하는 책 목록</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.likeBookContainer}>
-        <Text style={styles.listText}>> 관심 가는 책 목록</Text>
+        <TouchableOpacity style={styles.listText}>
+          <Text>> 관심가는 책 목록</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
