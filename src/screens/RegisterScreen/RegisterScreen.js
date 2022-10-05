@@ -11,7 +11,7 @@ import {
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import auth from '@react-native-firebase/auth';
+import auth, {sendEmailVerification} from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 import {signIn, signUp} from '../../lib/auth';
@@ -35,25 +35,43 @@ const RegisterScreen = () => {
     } else if (userPassword === '') {
       return Alert.alert('비밀번호 입력');
     }
-    setLoading(true);
     auth()
       .createUserWithEmailAndPassword(userEmail, userPassword)
       .then(userCredentials => {
         console.log(userCredentials.user);
-        auth()
-          .currentUser.updateProfile({
-            displayName: userNickname,
-          })
+        userCredentials.user
+          .sendEmailVerification()
           .then(() => {
-            userCollection.add({
-              id: userCredentials.user.uid,
-              email: userCredentials.user.email,
-              nickname: auth().currentUser.displayName,
-            });
+            Alert.alert('이메일을 확인해주세요.');
+            setLoading(true);
+            let emailVerificationEventListener = setInterval(() => {
+              auth().currentUser.reload();
+              if (auth().currentUser.emailVerified) {
+                clearInterval(emailVerificationEventListener);
+                setLoading(false);
+                auth()
+                  .currentUser.updateProfile({
+                    displayName: userNickname,
+                  })
+                  .then(() => {
+                    userCollection.add({
+                      id: userCredentials.user.uid,
+                      email: userCredentials.user.email,
+                      nickname: auth().currentUser.displayName,
+                    });
+                  })
+                  .catch(function (err) {
+                    console.log(err);
+                  });
+              }
+            }, 1000);
+          })
+          .catch(function (err) {
+            console.log(err);
           });
       })
       .catch(function (err) {
-        Alert.alert(err);
+        console.log(err);
       });
   };
   return (
@@ -70,9 +88,6 @@ const RegisterScreen = () => {
           setValue={setUserEmail}
           placeholder="대학교 이메일 주소를 입력해주세요!"
         />
-        <TouchableOpacity style={styles.emailAuthBtn}>
-          <Text style={styles.emailAuthText}>인증</Text>
-        </TouchableOpacity>
       </View>
       <CustomInput
         value={userNickname}
@@ -137,21 +152,6 @@ const styles = StyleSheet.create({
   emailAuthContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-  },
-  emailAuthBtn: {
-    position: 'absolute',
-    right: 45,
-    top: 4,
-    backgroundColor: '#21D380',
-    height: 40,
-    width: 40,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emailAuthText: {
-    fontSize: 15,
-    color: 'white',
   },
 });
 
