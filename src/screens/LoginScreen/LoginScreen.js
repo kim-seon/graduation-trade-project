@@ -4,10 +4,10 @@ import {View, Text, StyleSheet, Pressable, Alert} from 'react-native';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
+import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const LoginScreen = () => {
+const LoginScreen = ({navigation}) => {
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,13 +24,22 @@ const LoginScreen = () => {
       Alert.alert('비밀번호 입력은 필수입니다!');
     }
     setLoading(true);
-    let data = {email: userEmail, password: userPassword};
-    let body = [];
+    auth()
+      .signInWithEmailAndPassword(userEmail, userPassword)
+      .then(userCredentials => {
+        AsyncStorage.setItem(
+          'user',
+          JSON.stringify(userCredentials.user),
+          () => {
+            console.log('저장 완료');
+          },
+        ).catch(function (err) {
+          console.log(err);
+        });
+        navigation.navigate('Tab');
+      });
   };
 
-  const onRegisterPressed = () => {
-    console.warn('onRegisterPressed');
-  };
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
@@ -54,12 +63,6 @@ const LoginScreen = () => {
         secureTextEntry
       />
       <CustomButton onPress={onLoginPressed} text="로 그 인" />
-      <View style={styles.registerContainer}>
-        <Text style={{color: '#393E46'}}>아직 회원이 아니신가요?</Text>
-        <Pressable onPress={onRegisterPressed}>
-          <Text style={{color: '#06de96', marginLeft: 10}}>회원가입</Text>
-        </Pressable>
-      </View>
     </View>
   );
 };
@@ -97,11 +100,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#21D380',
     alignSelf: 'flex-start',
-  },
-  registerContainer: {
-    marginTop: 18,
-    flexDirection: 'row',
-    alignSelf: 'center',
   },
 });
 

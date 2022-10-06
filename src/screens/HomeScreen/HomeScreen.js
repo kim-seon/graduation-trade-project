@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,14 @@ import {
 } from 'react-native';
 import {FAB} from 'react-native-paper';
 
-export const HomeScreen = () => {
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const HomeScreen = ({navigation}) => {
+  const [userInfo, setUserInfo] = useState([]);
+  AsyncStorage.getItem('user').then(value => {
+    const data = JSON.parse(value);
+    setUserInfo(data);
+  });
   return (
     <View style={styles.container}>
       <View style={styles.listView}>
@@ -26,7 +33,7 @@ export const HomeScreen = () => {
         style={styles.fab}
         small
         label="책팔기"
-        onPress={() => console.log('Pressed')}
+        onPress={() => navigation.navigate('Write')}
       />
     </View>
   );

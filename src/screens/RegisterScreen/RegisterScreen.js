@@ -11,7 +11,7 @@ import {
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import auth, {sendEmailVerification} from '@react-native-firebase/auth';
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 import {signIn, signUp} from '../../lib/auth';
@@ -19,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const userCollection = firestore().collection('users');
 
-const RegisterScreen = () => {
+const RegisterScreen = ({navigation}) => {
   const [userEmail, setUserEmail] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [userConfPassword, setUseConfPassword] = useState('');
@@ -59,6 +59,14 @@ const RegisterScreen = () => {
                       email: userCredentials.user.email,
                       nickname: auth().currentUser.displayName,
                     });
+                    AsyncStorage.setItem(
+                      'user',
+                      JSON.stringify(userCredentials.user),
+                      () => {
+                        console.log('저장 완료');
+                      },
+                    );
+                    navigation.navigate('Login');
                   })
                   .catch(function (err) {
                     console.log(err);
