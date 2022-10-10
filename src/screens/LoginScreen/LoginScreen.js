@@ -28,7 +28,7 @@ const LoginScreen = ({navigation}) => {
       .signInWithEmailAndPassword(userEmail, userPassword)
       .then(userCredentials => {
         AsyncStorage.setItem(
-          'user',
+          'users',
           JSON.stringify(userCredentials.user),
           () => {
             console.log('저장 완료');

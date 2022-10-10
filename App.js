@@ -19,13 +19,11 @@ const Stack = createStackNavigator();
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(false);
-  AsyncStorage.getItem('user').then(data => {
+  AsyncStorage.getItem('users').then(data => {
     if (data !== null) {
       setIsLogin(true);
-      console.log(data);
     } else {
       setIsLogin(false);
-      console.log(data);
     }
   });
   return (

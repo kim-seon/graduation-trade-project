@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -6,14 +7,69 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Pressable,
+  Image,
+  Modal,
 } from 'react-native';
 import CustomButton from '../../components/CustomButton';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import MultipleImagePicker from '@baronha/react-native-multiple-image-picker';
 
 const WriteScreen = () => {
   const [selectedMenu, setSelectedMenu] = useState();
   const [selectedBefore, setSelectedBefore] = useState();
   const [selectedTrade, setSelectedTrade] = useState();
   const [selectedTradeBefore, setSelectedTradeBefore] = useState();
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [searchList, setSearchList] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchPage, setsearchPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadMoreCommit = () => {
+    setsearchPage(searchPage + 1);
+  };
+
+  const onOpenInfo = () => {
+    setModalVisible(true);
+    axios
+      .get(
+        `http://www.aladin.co.kr/ttb/api/ItemSearch.aspx?ttbkey=ttblte08091534001&Query=${searchKeyword}&QueryType=Keyword&MaxResults=10&start=1&MaxResults=${searchPage}&SearchTarget=Book&Cover=Small&output=js&Version=20131101`,
+      )
+      .then(res => {
+        setSearchList(res.data.item);
+      });
+    setIsLoading(false);
+  };
+
+  const renderBookList = ({item}) => {
+    return (
+      <View>
+        <TouchableOpacity style={styles.bookInfo}>
+          <View style={styles.bookImage}>
+            <Image
+              source={{uri: item.cover}}
+              resizeMode={'cover'}
+              style={{height: 70, width: 50}}
+            />
+          </View>
+          <View style={styles.bookInfoContainer}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.bookTitleText}>
+              {item.title}
+            </Text>
+            <View style={styles.bookANPContainer}>
+              <Text style={styles.bookANP}>{item.author}</Text>
+              <Text style={styles.bookANP}>{item.publisher}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   const Menus = ({menu, onPress, isSelected}) => {
     return (
@@ -25,6 +81,37 @@ const WriteScreen = () => {
           {menu}
         </Text>
       </TouchableOpacity>
+    );
+  };
+
+  const onSelectedImags1 = () => {
+    const response = MultipleImagePicker.openPicker({
+      usedCameraButton: true,
+      isExportThumbnail: true,
+      selectedAssets: selectedImages,
+      mediaType: 'image',
+    });
+    console.log(response);
+    setSelectedImages(response);
+    console.log(selectedImages);
+  };
+
+  const onDelete = value => {
+    const data = selectedImages.filter(
+      item =>
+        item.localIdentifier && item.localIdentifier !== value.localIdentifier,
+    );
+    setSelectedImages(data);
+  };
+
+  const renderImage = ({item, index}) => {
+    return (
+      <View>
+        <Image source={{uri: item._W.path}} style={styles.imgUpload} />
+        <TouchableOpacity onPress={() => onDelete(item)} activeOpacity={0.9}>
+          <Text>삭제</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -41,7 +128,6 @@ const WriteScreen = () => {
 
   const renderMenu = ({item}) => {
     const isSelected = selectedMenu === item.id ? true : false;
-
     const handleMenu = id => {
       if (selectedBefore === id) {
         setSelectedMenu(null);
@@ -150,9 +236,54 @@ const WriteScreen = () => {
 
   return (
     <View style={styles.container}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <FlatList
+              data={searchList}
+              keyExtractor={item => item.isbn}
+              renderItem={renderBookList}
+            />
+            <Pressable
+              style={styles.modalCloseBtn}
+              onPress={() => setModalVisible(!modalVisible)}>
+              <Text>닫기</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.infoContainer}>
-        <Text>사진 업로드</Text>
-        <TextInput style={styles.input} placeholder="책 제목" />
+        <FlatList
+          style={{flex: 1, paddingTop: 6}}
+          data={selectedImages}
+          keyExtractor={(item, index) => item.path + index}
+          renderItem={renderImage}
+          numColumns={3}
+          onEndReached={loadMoreCommit}
+          onEndReachedThreshold={0.5}
+          windowSize={2}
+          initialNumToRender={10}
+        />
+        <TouchableOpacity onPress={onSelectedImags1}>
+          <Text>open</Text>
+        </TouchableOpacity>
+        <View style={styles.searchBookContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="책 검색하기"
+            value={searchKeyword}
+            onChangeText={setSearchKeyword}
+          />
+          <TouchableOpacity style={styles.searchBtn} onPress={onOpenInfo}>
+            <Text>검색</Text>
+          </TouchableOpacity>
+        </View>
         <TextInput style={styles.input} placeholder="가격" />
         <View style={styles.bookState}>
           <FlatList
@@ -199,6 +330,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F2F2F2',
   },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  bookInfoContainer: {
+    justifyContent: 'center',
+    width: '75%',
+  },
+  bookTitleText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#393E46',
+    marginBottom: 5,
+  },
+  bookANP: {
+    fontSize: 13,
+  },
+  bookANPContainer: {
+    width: '75%',
+  },
+  bookInfo: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#21D380',
+    padding: 8,
+  },
+  bookImage: {
+    width: '25%',
+  },
+  modalCloseBtn: {
+    backgroundColor: '#FFD400',
+    borderRadius: 30,
+    padding: 5,
+  },
   input: {
     alignSelf: 'center',
     padding: 5,
@@ -228,6 +413,38 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#393E46',
+  },
+  imgUpload: {
+    marginLeft: 6,
+    marginBottom: 6,
+    width: 100,
+    height: 100,
+    backgroundColor: '#a0a0a0',
+  },
+  searchBookContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchInput: {
+    alignSelf: 'center',
+    padding: 5,
+    margin: 5,
+    color: '#393E46',
+    backgroundColor: 'white',
+    width: '65%',
+    borderRadius: 5,
+    marginBottom: 12,
+  },
+  searchBtn: {
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '15%',
+    marginTop: -5,
+    height: 35,
+    borderRadius: 30,
+    backgroundColor: '#21D380',
   },
   stateContainer: {
     alignSelf: 'center',

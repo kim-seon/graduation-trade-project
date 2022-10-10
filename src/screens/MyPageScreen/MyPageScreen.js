@@ -1,9 +1,21 @@
-import React, {useState} from 'react';
-import {View, Text, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+
+export const userCollection = firestore().collection('users');
 
 export const MyPageScreen = ({navigation}) => {
+  const [userInfo, setUserInfo] = useState([]);
+  const [userDB, setUserDB] = useState([]);
   const onLogoutPress = () => {
     AsyncStorage.removeItem('user');
     auth()
@@ -16,18 +28,33 @@ export const MyPageScreen = ({navigation}) => {
       });
   };
 
-  const [userInfo, setUserInfo] = useState([]);
-  AsyncStorage.getItem('user').then(value => {
-    const data = JSON.parse(value);
-    setUserInfo(data);
-  });
+  useEffect(() => {
+    AsyncStorage.getItem('users').then(value => {
+      const data = JSON.parse(value);
+      setUserInfo(data);
+      userCollection
+        .doc(data.uid)
+        .get()
+        .then(res => {
+          setUserDB(res._data);
+        });
+    });
+  }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.myInfo}>
-        <Text>프로필 사진</Text>
+        <Image
+          source={require('../../assets/image/avatar.png')}
+          resizeMode={'cover'}
+          style={{
+            width: 80,
+            height: 80,
+            margin: 5,
+          }}
+        />
         <Text style={styles.myNickname}>{userInfo.displayName}</Text>
-        <Text style={styles.mySchoolName}>강남대학교</Text>
+        <Text style={styles.mySchoolName}>{userDB.school}</Text>
       </View>
       <View style={styles.sellBookContainer}>
         <TouchableOpacity>
@@ -66,8 +93,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   mySchoolName: {
-    fontSize: 15,
-    color: '#FFD400',
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: '#FFD400',
+    color: '#F2F2F2',
+    borderRadius: 30,
+    padding: 5,
   },
   sellBookContainer: {
     margin: 10,

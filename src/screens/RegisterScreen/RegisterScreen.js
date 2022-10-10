@@ -1,21 +1,24 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState, createRef} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   Pressable,
   Alert,
   TouchableOpacity,
+  Keyboard,
 } from 'react-native';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-import {signIn, signUp} from '../../lib/auth';
+import SearchableDropdown from 'react-native-searchable-dropdown';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import searchResult from '../../components/SearchSchoolList';
 
 export const userCollection = firestore().collection('users');
 
@@ -24,9 +27,10 @@ const RegisterScreen = ({navigation}) => {
   const [userPassword, setUserPassword] = useState('');
   const [userConfPassword, setUseConfPassword] = useState('');
   const [userNickname, setUserNickname] = useState('');
+  const [userSchool, setUserSchool] = useState('');
+  const [userDB, setUserDB] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errortext, setErrortext] = useState('');
-  const passwordInputRef = createRef();
 
   const onRegisterPressed = () => {
     //const info = {userEmail, userPassword};
@@ -42,7 +46,9 @@ const RegisterScreen = ({navigation}) => {
         userCredentials.user
           .sendEmailVerification()
           .then(() => {
-            Alert.alert('이메일을 확인해주세요.');
+            Alert.alert(
+              '이메일을 확인해주세요.\n이메일을 인증한 후 OK를 클릭해주세요.',
+            );
             setLoading(true);
             let emailVerificationEventListener = setInterval(() => {
               auth().currentUser.reload();
@@ -54,14 +60,22 @@ const RegisterScreen = ({navigation}) => {
                     displayName: userNickname,
                   })
                   .then(() => {
-                    userCollection.add({
+                    userCollection.doc(userCredentials.user.uid).set({
                       id: userCredentials.user.uid,
                       email: userCredentials.user.email,
                       nickname: auth().currentUser.displayName,
+                      school: userSchool,
                     });
+                    userCollection
+                      .doc(userCredentials.user.uid + '')
+                      .get()
+                      .then(doc => {
+                        console.log(doc._data);
+                        setUserDB(doc._data);
+                      });
                     AsyncStorage.setItem(
-                      'user',
-                      JSON.stringify(userCredentials.user),
+                      'users',
+                      JSON.stringify(userDB),
                       () => {
                         console.log('저장 완료');
                       },
@@ -82,6 +96,7 @@ const RegisterScreen = ({navigation}) => {
         console.log(err);
       });
   };
+
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
@@ -90,13 +105,29 @@ const RegisterScreen = ({navigation}) => {
           <Text style={styles.registerTextDsc}>| 회원가입</Text>
         </View>
       </View>
-      <View style={styles.emailAuthContainer}>
-        <CustomInput
-          value={userEmail}
-          setValue={setUserEmail}
-          placeholder="대학교 이메일 주소를 입력해주세요!"
-        />
-      </View>
+      <SearchableDropdown
+        onTextChange={text => console.log(text)}
+        onItemSelect={item => {
+          setUserSchool(item.name);
+        }}
+        items={searchResult}
+        placeholder={userSchool ? userSchool : '대학교 이름을 검색해주세요!'}
+        placeholderTextColor={userSchool ? '#393E46' : '#06de96'}
+        textInputStyle={styles.customInput}
+        itemStyle={styles.customList}
+        itemsContainerStyle={{
+          maxHeight: 160,
+          margin: 40,
+          marginTop: -18,
+        }}
+        itemTextStyle={{color: '#393E46'}}
+        underlineColorAndroid="transparent"
+      />
+      <CustomInput
+        value={userEmail}
+        setValue={setUserEmail}
+        placeholder="대학교 이메일 주소를 입력해주세요!"
+      />
       <CustomInput
         value={userNickname}
         setValue={setUserNickname}
@@ -126,6 +157,33 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     backgroundColor: '#F2F2F2',
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    alignSelf: 'center',
+    backgroundColor: '#a0a0a0',
+    borderRadius: 50,
+    marginBottom: 18,
+  },
+  customInput: {
+    fontSize: 15,
+    color: '#393E46',
+    backgroundColor: 'transparent',
+    width: '80%',
+    height: 48,
+    paddingLeft: 15,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#06de96',
+    marginBottom: 18,
+    alignSelf: 'center',
+  },
+  customList: {
+    padding: 10,
+    borderColor: '#21D380',
+    borderBottomWidth: 1,
+    backgroundColor: '#ddd',
   },
   textContainer: {
     width: '80%',

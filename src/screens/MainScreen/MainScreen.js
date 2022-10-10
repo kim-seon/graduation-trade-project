@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   mainNextContainer: {
     width: '80%',
     position: 'absolute',
-    bottom: 100,
+    bottom: 80,
   },
   mainStartBtn: {
     width: '100%',
