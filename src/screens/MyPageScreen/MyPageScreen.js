@@ -11,13 +11,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-export const userCollection = firestore().collection('users');
-
 export const MyPageScreen = ({navigation}) => {
   const [userInfo, setUserInfo] = useState([]);
   const [userDB, setUserDB] = useState([]);
   const onLogoutPress = () => {
-    AsyncStorage.removeItem('user');
+    AsyncStorage.removeItem('users');
     auth()
       .signOut()
       .then(() => {
@@ -27,6 +25,8 @@ export const MyPageScreen = ({navigation}) => {
         console.log(err);
       });
   };
+
+  const userCollection = firestore().collection('users');
 
   useEffect(() => {
     AsyncStorage.getItem('users').then(value => {

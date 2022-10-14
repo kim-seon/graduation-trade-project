@@ -11,7 +11,7 @@ import {FAB} from 'react-native-paper';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const HomeScreen = ({navigation}) => {
+export const HomeScreen = ({navigation, route}) => {
   const [userInfo, setUserInfo] = useState([]);
   AsyncStorage.getItem('user').then(value => {
     const data = JSON.parse(value);

@@ -1,5 +1,6 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import axios from 'axios';
+import Moment from 'moment';
 import {
   View,
   Text,
@@ -10,12 +11,20 @@ import {
   Pressable,
   Image,
   Modal,
+  LogBox,
 } from 'react-native';
+import {ScrollView} from 'react-native-gesture-handler';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import CustomButton from '../../components/CustomButton';
-import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import MultipleImagePicker from '@baronha/react-native-multiple-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+//import storage, {uploadBytesResumable} from '@react-native-firebase/storage';
 
-const WriteScreen = () => {
+const WriteScreen = ({navigation, route}) => {
+  const [userInfo, setUserInfo] = useState([]);
+  const [userDB, setUserDB] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState();
   const [selectedBefore, setSelectedBefore] = useState();
   const [selectedTrade, setSelectedTrade] = useState();
@@ -24,11 +33,73 @@ const WriteScreen = () => {
   const [searchList, setSearchList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchPage, setsearchPage] = useState(1);
+  const [searchPage, setSearchPage] = useState(1);
+  const [inputPrice, setInputPrice] = useState('');
+  const [bookState, setBookState] = useState('');
+  const [inputDsc, setInputDsc] = useState('');
+  const [tradeMethod, setTradeMethod] = useState('');
+  const [directPlace, setdirectPlace] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectImgBtn, setSelectImgBtn] = useState(false);
+  const [imgBtnTxt, setimgBtnTxt] = useState('사진 업로드(최대 3장)');
+  const [selectedBookInfo, setSelectedBookInfo] = useState([]);
+  const [infoVisible, setInfoVisible] = useState(false);
+  const [writeNum, setWriteNum] = useState('');
+  const [uploadDate, setUploadDate] = useState();
 
-  const loadMoreCommit = () => {
-    setsearchPage(searchPage + 1);
+  const userCollection = firestore().collection('users');
+  const writeCollection = firestore().collection('writes');
+
+  useEffect(() => {
+    LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+    AsyncStorage.getItem('users').then(value => {
+      const data = JSON.parse(value);
+      setUserInfo(data);
+      userCollection
+        .doc(data.uid)
+        .get()
+        .then(res => {
+          setUserDB(res._data);
+        })
+        .catch(function (err) {
+          console.log(err);
+        });
+    });
+  }, []);
+
+  const onSubmitPress = async e => {
+    const currentDate = Date.now();
+    const submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
+    const printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
+    setUploadDate(printDate);
+    console.log(uploadDate);
+    e.preventDefault();
+    await writeCollection
+      .doc(submitDate)
+      .set(writeData)
+      .then(value => {
+        console.log(value);
+      })
+      .catch(function (err) {
+        console.log(err);
+      });
+  };
+
+  let writeData = {
+    seller: userInfo.displayName,
+    sellerUid: userInfo.uid,
+    sellerSchool: userDB.school,
+    stateImage: selectedImages,
+    bookCover: selectedBookInfo[0],
+    bookTitle: selectedBookInfo[1],
+    bookAuthor: selectedBookInfo[2],
+    bookPublisher: selectedBookInfo[3],
+    tradePrice: inputPrice,
+    bookState: bookState,
+    bookDsc: inputDsc,
+    tradeWay: tradeMethod,
+    tradeDirect: directPlace && directPlace,
+    date: uploadDate,
   };
 
   const onOpenInfo = () => {
@@ -46,7 +117,9 @@ const WriteScreen = () => {
   const renderBookList = ({item}) => {
     return (
       <View>
-        <TouchableOpacity style={styles.bookInfo}>
+        <TouchableOpacity
+          onPress={() => onSelectedBook({item})}
+          style={styles.bookInfo}>
           <View style={styles.bookImage}>
             <Image
               source={{uri: item.cover}}
@@ -84,35 +157,132 @@ const WriteScreen = () => {
     );
   };
 
-  const onSelectedImags1 = () => {
-    const response = MultipleImagePicker.openPicker({
+  const ImageBtn = ({text, onPress}) => {
+    if (selectImgBtn === true) {
+      setimgBtnTxt('다시 업로드하기');
+    }
+    return (
+      <View>
+        <TouchableOpacity style={styles.uploadBtn} onPress={onPress}>
+          <Text style={{alignSelf: 'center', color: '#393E46'}}>{text}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const onSelectedImages = async () => {
+    const response = await MultipleImagePicker.openPicker({
       usedCameraButton: true,
       isExportThumbnail: true,
       selectedAssets: selectedImages,
+      maxSelectedAssets: 3,
       mediaType: 'image',
     });
-    console.log(response);
+    setSelectImgBtn(true);
     setSelectedImages(response);
-    console.log(selectedImages);
   };
 
   const onDelete = value => {
-    const data = selectedImages.filter(
-      item =>
-        item.localIdentifier && item.localIdentifier !== value.localIdentifier,
-    );
+    const data =
+      selectedImages &&
+      selectedImages.filter(
+        item =>
+          item.localIdentifier &&
+          item.localIdentifier !== value.localIdentifier,
+      );
     setSelectedImages(data);
   };
 
   const renderImage = ({item, index}) => {
     return (
       <View>
-        <Image source={{uri: item._W.path}} style={styles.imgUpload} />
-        <TouchableOpacity onPress={() => onDelete(item)} activeOpacity={0.9}>
-          <Text>삭제</Text>
+        <Image
+          source={{
+            uri: item.path,
+          }}
+          style={styles.imgUpload}
+        />
+        <TouchableOpacity
+          onPress={() => onDelete(item)}
+          activeOpacity={0.9}
+          style={styles.buttonDelete}>
+          <Text style={styles.titleDelete}>삭제</Text>
         </TouchableOpacity>
       </View>
     );
+  };
+
+  const onSelectedBook = ({item}) => {
+    setInfoVisible(true);
+    setModalVisible(!modalVisible);
+    setSelectedBookInfo([
+      item.cover,
+      item.title,
+      item.author,
+      item.publisher,
+      item.isbn,
+    ]);
+  };
+
+  const BookInfo = () => {
+    if (infoVisible === true) {
+      return (
+        <View style={styles.selectedBookContainer}>
+          <Text style={styles.titleForInfo}>📑 선택한 책</Text>
+          <View
+            style={{
+              width: '100%',
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 5,
+              alignSelf: 'center',
+              justifyContent: 'center',
+            }}>
+            <View style={{width: '20%', alignItems: 'flex-start'}}>
+              <Image
+                source={{uri: selectedBookInfo[0]}}
+                resizeMode={'cover'}
+                style={{height: 70, width: 50}}
+              />
+            </View>
+            <View style={{width: '30%', alignItems: 'flex-start'}}>
+              <Text style={styles.infoTitle}>제목</Text>
+              <Text style={styles.infoTitle}>ISBN</Text>
+              <Text style={styles.infoTitle}>지은이</Text>
+              <Text style={styles.infoTitle}>출판사</Text>
+            </View>
+            <View style={{width: '50%', alignItems: 'flex-end'}}>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.infoAll}>
+                {selectedBookInfo[1]}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.infoAll}>
+                {selectedBookInfo[4]}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.infoAll}>
+                {selectedBookInfo[2]}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.infoAll}>
+                {selectedBookInfo[3]}
+              </Text>
+            </View>
+          </View>
+        </View>
+      );
+    } else {
+      return null;
+    }
   };
 
   const bookStateList = [
@@ -134,6 +304,7 @@ const WriteScreen = () => {
         setSelectedBefore(null);
         return;
       }
+      setBookState(item.menu);
       setSelectedMenu(id);
       setSelectedBefore(id);
     };
@@ -158,6 +329,7 @@ const WriteScreen = () => {
         setSelectedTradeBefore(null);
         return;
       }
+      setTradeMethod(item.menu);
       setSelectedTrade(id);
       setSelectedTradeBefore(id);
     };
@@ -219,23 +391,30 @@ const WriteScreen = () => {
     }
   };
 
-  const ShowTradeView = () => {
-    if (selectedTrade === 'direct') {
-      return (
-        <View style={styles.centerView}>
-          <TextInput
-            style={styles.input}
-            placeholder="대략적인 위치를 기입해주세요"
-          />
-        </View>
-      );
-    } else {
+  const getHeader = () => {
+    return (
+      <Text style={{fontSize: 16, marginBottom: 5, alignSelf: 'center'}}>
+        <Text style={{color: '#21D380', fontWeight: '700',}}>
+          {searchKeyword}
+        </Text>
+        에 대한 검색결과
+      </Text>
+    );
+  };
+
+  const getFooter = () => {
+    if (isLoading) {
       return null;
     }
+    return (
+      <Text style={{fontSize: 16, marginTop: 5, alignSelf: 'center'}}>
+        Loding. . .
+      </Text>
+    );
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Modal
         animationType="slide"
         transparent={true}
@@ -247,32 +426,38 @@ const WriteScreen = () => {
           <View style={styles.modalView}>
             <FlatList
               data={searchList}
+              listKey={(item, index) => 'D' + index.toString()}
               keyExtractor={item => item.isbn}
               renderItem={renderBookList}
+              disableVirtualization={false}
+              initialNumToRender={15}
+              onEndReachedThreshold={0.2}
+              ListHeaderComponent={getHeader}
+              ListFooterComponent={getFooter}
             />
             <Pressable
               style={styles.modalCloseBtn}
               onPress={() => setModalVisible(!modalVisible)}>
-              <Text>닫기</Text>
+              <Text style={{color: '#F2F2F2'}}>닫기</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
       <View style={styles.infoContainer}>
-        <FlatList
-          style={{flex: 1, paddingTop: 6}}
-          data={selectedImages}
-          keyExtractor={(item, index) => item.path + index}
-          renderItem={renderImage}
-          numColumns={3}
-          onEndReached={loadMoreCommit}
-          onEndReachedThreshold={0.5}
-          windowSize={2}
-          initialNumToRender={10}
-        />
-        <TouchableOpacity onPress={onSelectedImags1}>
-          <Text>open</Text>
-        </TouchableOpacity>
+        <View>
+          {selectedImages.length > 0 && (
+            <FlatList
+              contentContainerStyle={{width: '100%', alignItems: 'center'}}
+              data={selectedImages}
+              listKey={(item, index) => 'D' + index.toString()}
+              keyExtractor={(item, index) => item.path + index}
+              renderItem={renderImage}
+              numColumns={3}
+              scrollEnabled={false}
+            />
+          )}
+        </View>
+        <ImageBtn text={imgBtnTxt} onPress={onSelectedImages} />
         <View style={styles.searchBookContainer}>
           <TextInput
             style={styles.searchInput}
@@ -284,49 +469,69 @@ const WriteScreen = () => {
             <Text>검색</Text>
           </TouchableOpacity>
         </View>
-        <TextInput style={styles.input} placeholder="가격" />
+        <BookInfo />
+        <TextInput
+          style={styles.input}
+          placeholder="가격"
+          value={inputPrice}
+          onChangeText={setInputPrice}
+        />
         <View style={styles.bookState}>
           <FlatList
             data={bookStateList}
             renderItem={renderMenu}
+            listKey={(item, index) => 'D' + index.toString()}
             keyExtractor={item => item.id}
             extraData={selectedMenu}
             numColumns={3}
             contentContainerStyle={{
               alignSelf: 'center',
             }}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
           />
         </View>
         <ShowView />
         <View>
           <TextInput
             style={styles.bookShortDsc}
-            placeholder="책에 관한 짧은 소개글을 적어주세요!"
+            placeholder="책 상태에 대한 글을 작성해주세요!"
+            value={inputDsc}
+            onChangeText={setInputDsc}
           />
         </View>
         <View>
           <FlatList
             data={tradeWay}
             renderItem={tradeRenderMenu}
+            listKey={(item, index) => 'D' + index.toString()}
             keyExtractor={item => item.id}
             extraData={selectedTrade}
             numColumns={2}
             contentContainerStyle={{
               alignSelf: 'center',
             }}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
           />
+          {selectedTrade === 'direct' && (
+            <TextInput
+              style={styles.input}
+              placeholder="대략적인 위치를 기입해주세요"
+              value={directPlace}
+              onChangeText={setdirectPlace}
+            />
+          )}
         </View>
-        <ShowTradeView />
       </View>
-      <CustomButton text="등록하기" />
-    </View>
+      <CustomButton onPress={onSubmitPress} text="등록하기" />
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
-    height: '100%',
+    flexGrow: 1,
     justifyContent: 'center',
     backgroundColor: '#F2F2F2',
   },
@@ -351,6 +556,72 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  imageList: {
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  imgUpload: {
+    width: 100,
+    height: 100,
+    borderWidth: 1,
+    borderRadius: 5,
+    margin: 5,
+  },
+  uploadBtn: {
+    width: '80%',
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#393E46',
+    padding: 5,
+    margin: 5,
+    alignSelf: 'center',
+  },
+  restImage: {
+    position: 'absolute',
+    right: 0,
+  },
+  titleDelete: {
+    fontWeight: 'bold',
+    fontSize: 12,
+    color: '#000',
+  },
+  buttonDelete: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#ffffff92',
+    borderRadius: 4,
+  },
+  selectedBookContainer: {
+    width: '80%',
+    marginBottom: 5,
+    backgroundColor: 'white',
+    alignSelf: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 5,
+    borderColor: '#21D380',
+  },
+  titleForInfo: {
+    padding: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#21D380',
+    fontSize: 14,
+    color: '#393E46',
+    fontWeight: 'bold',
+  },
+  infoAll: {
+    color: '#393E46',
+  },
+  infoTitle: {
+    fontWeight: 'bold',
+    color: '#393E46',
+  },
   bookInfoContainer: {
     justifyContent: 'center',
     width: '75%',
@@ -359,7 +630,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#393E46',
-    marginBottom: 5,
   },
   bookANP: {
     fontSize: 13,
@@ -382,7 +652,7 @@ const styles = StyleSheet.create({
   modalCloseBtn: {
     backgroundColor: '#FFD400',
     borderRadius: 30,
-    padding: 5,
+    padding: 10,
   },
   input: {
     alignSelf: 'center',
@@ -414,13 +684,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#393E46',
   },
-  imgUpload: {
-    marginLeft: 6,
-    marginBottom: 6,
-    width: 100,
-    height: 100,
-    backgroundColor: '#a0a0a0',
-  },
   searchBookContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -448,7 +711,7 @@ const styles = StyleSheet.create({
   },
   stateContainer: {
     alignSelf: 'center',
-    width: '70%',
+    width: '80%',
     margin: 5,
     padding: 10,
     backgroundColor: 'white',

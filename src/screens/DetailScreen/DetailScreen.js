@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const DetailScreen = () => {
+const DetailScreen = ({navigation, route}) => {
   return (
     <View style={styles.container}>
       <View style={styles.bookImageContainer}>
