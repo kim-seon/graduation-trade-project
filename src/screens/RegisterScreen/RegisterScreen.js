@@ -14,6 +14,7 @@ import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import {firebase} from '@react-native-firebase/database';
 
 import SearchableDropdown from 'react-native-searchable-dropdown';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,6 +34,11 @@ const RegisterScreen = ({navigation}) => {
   const [errortext, setErrortext] = useState('');
 
   const onRegisterPressed = () => {
+    const reference = firebase
+      .app()
+      .database(
+        'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
+      );
     //const info = {userEmail, userPassword};
     if (userEmail === '') {
       return Alert.alert('이메일 입력');
@@ -66,20 +72,27 @@ const RegisterScreen = ({navigation}) => {
                       nickname: auth().currentUser.displayName,
                       school: userSchool,
                     });
-                    userCollection
-                      .doc(userCredentials.user.uid + '')
-                      .get()
-                      .then(doc => {
-                        console.log(doc._data);
-                        setUserDB(doc._data);
+                    reference
+                      .ref(`/users/${userCredentials.user.uid}`)
+                      .set({
+                        id: userCredentials.user.uid,
+                        email: userCredentials.user.email,
+                        nickname: auth().currentUser.displayName,
+                        school: userSchool,
+                      })
+                      .then(() => console.log('회원가입 성공'))
+                      .catch(arr => console.log(arr));
+                    reference
+                      .ref(`/users/${userCredentials.user.uid}`)
+                      .once('value')
+                      .then(snapshot => {
+                        const user = JSON.stringify(snapshot);
+                        console.log(user);
+                        setUserDB(user);
                       });
-                    AsyncStorage.setItem(
-                      'users',
-                      JSON.stringify(userDB),
-                      () => {
-                        console.log('저장 완료');
-                      },
-                    );
+                    AsyncStorage.setItem('user', JSON.stringify(userDB), () => {
+                      console.log('저장 완료');
+                    });
                     navigation.navigate('Login');
                   })
                   .catch(function (err) {

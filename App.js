@@ -12,6 +12,7 @@ import {createStackNavigator} from '@react-navigation/stack';
 import TabNavigation from './src/navigations/Tab';
 import MainStackNavigation from './src/navigations/MainStack';
 import WriteScreen from './src/screens/WriteScreen/WriteScreen';
+import DetailScreen from './src/screens/DetailScreen/DetailScreen';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -39,6 +40,11 @@ const App = () => {
             <Stack.Screen
               name="Write"
               component={WriteScreen}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="Detail"
+              component={DetailScreen}
               options={{headerShown: false}}
             />
           </>

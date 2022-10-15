@@ -20,9 +20,15 @@ import MultipleImagePicker from '@baronha/react-native-multiple-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import {firebase} from '@react-native-firebase/database';
 //import storage, {uploadBytesResumable} from '@react-native-firebase/storage';
 
 const WriteScreen = ({navigation, route}) => {
+  const reference = firebase
+    .app()
+    .database(
+      'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    );
   const [userInfo, setUserInfo] = useState([]);
   const [userDB, setUserDB] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState();
@@ -34,7 +40,7 @@ const WriteScreen = ({navigation, route}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchPage, setSearchPage] = useState(1);
-  const [inputPrice, setInputPrice] = useState('');
+  const [inputPrice, setInputPrice] = useState(null);
   const [bookState, setBookState] = useState('');
   const [inputDsc, setInputDsc] = useState('');
   const [tradeMethod, setTradeMethod] = useState('');
@@ -46,20 +52,22 @@ const WriteScreen = ({navigation, route}) => {
   const [infoVisible, setInfoVisible] = useState(false);
   const [writeNum, setWriteNum] = useState('');
   const [uploadDate, setUploadDate] = useState();
-
-  const userCollection = firestore().collection('users');
-  const writeCollection = firestore().collection('writes');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
     AsyncStorage.getItem('users').then(value => {
       const data = JSON.parse(value);
       setUserInfo(data);
-      userCollection
-        .doc(data.uid)
-        .get()
-        .then(res => {
-          setUserDB(res._data);
+      reference
+        .ref(`/users/${userInfo.uid}`)
+        .once('value')
+        .then(async snapshot => {
+          const user = await snapshot.val();
+          console.log(user);
+          setUserDB(user);
+          setLoading(false);
         })
         .catch(function (err) {
           console.log(err);
@@ -74,11 +82,11 @@ const WriteScreen = ({navigation, route}) => {
     setUploadDate(printDate);
     console.log(uploadDate);
     e.preventDefault();
-    await writeCollection
-      .doc(submitDate)
+    await reference
+      .ref(`/posts/${submitDate}`)
       .set(writeData)
-      .then(value => {
-        console.log(value);
+      .then(() => {
+        navigation.navigate('Detail', {id: submitDate});
       })
       .catch(function (err) {
         console.log(err);
@@ -88,12 +96,14 @@ const WriteScreen = ({navigation, route}) => {
   let writeData = {
     seller: userInfo.displayName,
     sellerUid: userInfo.uid,
-    sellerSchool: userDB.school,
+    sellerSchool: userDB.school && userDB.school,
     stateImage: selectedImages,
     bookCover: selectedBookInfo[0],
     bookTitle: selectedBookInfo[1],
     bookAuthor: selectedBookInfo[2],
     bookPublisher: selectedBookInfo[3],
+    bookPrice: selectedBookInfo[5],
+    bookPubDate: selectedBookInfo[6],
     tradePrice: inputPrice,
     bookState: bookState,
     bookDsc: inputDsc,
@@ -221,6 +231,8 @@ const WriteScreen = ({navigation, route}) => {
       item.author,
       item.publisher,
       item.isbn,
+      item.priceStandard,
+      item.pubDate,
     ]);
   };
 
@@ -238,20 +250,14 @@ const WriteScreen = ({navigation, route}) => {
               alignSelf: 'center',
               justifyContent: 'center',
             }}>
-            <View style={{width: '20%', alignItems: 'flex-start'}}>
-              <Image
-                source={{uri: selectedBookInfo[0]}}
-                resizeMode={'cover'}
-                style={{height: 70, width: 50}}
-              />
-            </View>
             <View style={{width: '30%', alignItems: 'flex-start'}}>
               <Text style={styles.infoTitle}>제목</Text>
-              <Text style={styles.infoTitle}>ISBN</Text>
-              <Text style={styles.infoTitle}>지은이</Text>
+              <Text style={styles.infoTitle}>원가</Text>
+              <Text style={styles.infoTitle}>저자</Text>
               <Text style={styles.infoTitle}>출판사</Text>
+              <Text style={styles.infoTitle}>출판날짜</Text>
             </View>
-            <View style={{width: '50%', alignItems: 'flex-end'}}>
+            <View style={{width: '65%', alignItems: 'flex-end'}}>
               <Text
                 numberOfLines={1}
                 ellipsizeMode="tail"
@@ -262,7 +268,7 @@ const WriteScreen = ({navigation, route}) => {
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={styles.infoAll}>
-                {selectedBookInfo[4]}
+                {selectedBookInfo[5]}
               </Text>
               <Text
                 numberOfLines={1}
@@ -275,6 +281,12 @@ const WriteScreen = ({navigation, route}) => {
                 ellipsizeMode="tail"
                 style={styles.infoAll}>
                 {selectedBookInfo[3]}
+              </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={styles.infoAll}>
+                {selectedBookInfo[6]}
               </Text>
             </View>
           </View>
@@ -473,6 +485,7 @@ const WriteScreen = ({navigation, route}) => {
         <TextInput
           style={styles.input}
           placeholder="가격"
+          keyboardType="numeric"
           value={inputPrice}
           onChangeText={setInputPrice}
         />

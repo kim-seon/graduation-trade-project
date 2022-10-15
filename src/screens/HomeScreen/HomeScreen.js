@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const HomeScreen = ({navigation, route}) => {
   const [userInfo, setUserInfo] = useState([]);
-  AsyncStorage.getItem('user').then(value => {
+  AsyncStorage.getItem('users').then(value => {
     const data = JSON.parse(value);
     setUserInfo(data);
   });
