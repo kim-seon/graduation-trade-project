@@ -86,7 +86,7 @@ const RegisterScreen = ({navigation}) => {
                       .ref(`/users/${userCredentials.user.uid}`)
                       .once('value')
                       .then(snapshot => {
-                        const user = JSON.stringify(snapshot);
+                        const user = snapshot.val();
                         console.log(user);
                         setUserDB(user);
                       });

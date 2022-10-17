@@ -8,12 +8,24 @@ import {
   Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import {firebase} from '@react-native-firebase/database';
 
-export const MyPageScreen = ({navigation}) => {
+export const MyPageScreen = (data, {route}) => {
+  const navigation = useNavigation();
+  const reference = firebase
+    .app()
+    .database(
+      'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    );
+
   const [userInfo, setUserInfo] = useState([]);
+  const [userPosts, setUserPosts] = useState({});
   const [userDB, setUserDB] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const onLogoutPress = () => {
     AsyncStorage.removeItem('users');
     auth()
@@ -26,20 +38,57 @@ export const MyPageScreen = ({navigation}) => {
       });
   };
 
-  const userCollection = firestore().collection('users');
-
+  let list = [];
   useEffect(() => {
-    AsyncStorage.getItem('users').then(value => {
-      const data = JSON.parse(value);
-      setUserInfo(data);
-      userCollection
-        .doc(data.uid)
-        .get()
-        .then(res => {
-          setUserDB(res._data);
+    setUserInfo(data.data);
+    const getData = () => {
+      try {
+        auth().onAuthStateChanged(user => {
+          reference
+            .ref(`/users/${user.uid}`)
+            .once('value')
+            .then(snapshot => {
+              const userData = snapshot.val();
+              setUserDB(userData);
+              reference
+                .ref('/posts/')
+                .orderByChild('sellerUid')
+                .equalTo(userDB.id)
+                .on('value', value => {
+                  for (var i in value.val()) {
+                    list.push(value.val()[i]);
+                    setUserPosts(list);
+                  }
+                });
+            });
         });
-    });
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    getData();
   }, []);
+
+  const renderPostList = ({item}) => {
+    return (
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate('Detail', {postNum: item.uploadDate})
+        }>
+        <View style={styles.listView}>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>
+            {item.bookTitle}
+          </Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
+            {item.bookAuthor}
+          </Text>
+          <Text style={styles.bookAP}>{item.bookPublisher}</Text>
+          <Text style={{fontSize: 12}}>{item.date}</Text>
+          <Text style={styles.price}>{item.tradePrice}원</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -60,6 +109,16 @@ export const MyPageScreen = ({navigation}) => {
         <TouchableOpacity>
           <Text style={styles.listText}>> 판매하는 책 목록</Text>
         </TouchableOpacity>
+        <View>
+          <FlatList
+            data={userPosts}
+            listKey={(item, index) => 'D' + index.toString()}
+            keyExtractor={(item, index) => 'D' + index.toString()}
+            renderItem={renderPostList}
+            disableVirtualization={false}
+            onEndReachedThreshold={0.2}
+          />
+        </View>
       </View>
       <View style={styles.likeBookContainer}>
         <TouchableOpacity>
@@ -105,6 +164,27 @@ const styles = StyleSheet.create({
     padding: 25,
     backgroundColor: 'white',
     borderRadius: 5,
+  },
+  listView: {
+    height: 130,
+    margin: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#21D380',
+    justifyContent: 'center',
+  },
+  bookTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#393E46',
+  },
+  bookAP: {
+    fontSize: 12,
+    color: '#393E46',
+  },
+  price: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#21D380',
   },
   likeBookContainer: {
     margin: 10,

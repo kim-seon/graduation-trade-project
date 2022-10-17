@@ -7,6 +7,7 @@
  */
 
 import React, {useState, useEffect} from 'react';
+import auth from '@react-native-firebase/auth';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import TabNavigation from './src/navigations/Tab';
@@ -20,13 +21,23 @@ const Stack = createStackNavigator();
 
 const App = () => {
   const [isLogin, setIsLogin] = useState(false);
-  AsyncStorage.getItem('users').then(data => {
-    if (data !== null) {
-      setIsLogin(true);
-    } else {
-      setIsLogin(false);
-    }
-  });
+  const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState([]);
+  const [userUid, setUserUid] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    auth().onAuthStateChanged(user => {
+      if (user !== null) {
+        setIsLogin(true);
+        setUserInfo(user);
+        setLoading(false);
+      } else {
+        setIsLogin(false);
+      }
+    });
+  }, []);
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -34,7 +45,7 @@ const App = () => {
           <>
             <Stack.Screen
               name="Tab"
-              component={TabNavigation}
+              children={() => <TabNavigation params={userInfo} />}
               options={{headerShown: false}}
             />
             <Stack.Screen

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import axios from 'axios';
 import Moment from 'moment';
 import {
@@ -12,12 +12,14 @@ import {
   Image,
   Modal,
   LogBox,
+  RefreshControl,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import CustomButton from '../../components/CustomButton';
 import MultipleImagePicker from '@baronha/react-native-multiple-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useIsFocused} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
@@ -52,35 +54,49 @@ const WriteScreen = ({navigation, route}) => {
   const [infoVisible, setInfoVisible] = useState(false);
   const [writeNum, setWriteNum] = useState('');
   const [uploadDate, setUploadDate] = useState();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
-    AsyncStorage.getItem('users').then(value => {
-      const data = JSON.parse(value);
-      setUserInfo(data);
-      reference
-        .ref(`/users/${userInfo.uid}`)
-        .once('value')
-        .then(async snapshot => {
-          const user = await snapshot.val();
-          console.log(user);
-          setUserDB(user);
-          setLoading(false);
-        })
-        .catch(function (err) {
-          console.log(err);
-        });
-    });
+    reference
+      .ref(`/users/${route.params.data.uid}`)
+      .once('value')
+      .then(snapshot => {
+        const userData = snapshot.val();
+        console.log(userData);
+        setUserDB(userData);
+        setLoading(false);
+      });
   }, []);
 
+  let submitDate = null;
+  let printDate = null;
+
   const onSubmitPress = async e => {
-    const currentDate = Date.now();
-    const submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
-    const printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
-    setUploadDate(printDate);
-    console.log(uploadDate);
+    const currentDate = new Date();
+    submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
+    printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
+    let writeData = {
+      seller: route.params.displayName,
+      sellerUid: route.params.uid,
+      sellerSchool: userDB.school,
+      stateImage: selectedImages,
+      bookCover: selectedBookInfo[0],
+      bookTitle: selectedBookInfo[1],
+      bookAuthor: selectedBookInfo[2],
+      bookPublisher: selectedBookInfo[3],
+      bookPrice: selectedBookInfo[5]
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ','),
+      bookPubDate: selectedBookInfo[6],
+      tradePrice: inputPrice.replace(/\B(?=(\d{3})+(?!\d))/g, ','),
+      bookState: bookState,
+      bookDsc: inputDsc,
+      tradeWay: tradeMethod,
+      tradeDirect: directPlace && directPlace,
+      date: printDate,
+      uploadDate: submitDate,
+    };
     e.preventDefault();
     await reference
       .ref(`/posts/${submitDate}`)
@@ -91,25 +107,6 @@ const WriteScreen = ({navigation, route}) => {
       .catch(function (err) {
         console.log(err);
       });
-  };
-
-  let writeData = {
-    seller: userInfo.displayName,
-    sellerUid: userInfo.uid,
-    sellerSchool: userDB.school && userDB.school,
-    stateImage: selectedImages,
-    bookCover: selectedBookInfo[0],
-    bookTitle: selectedBookInfo[1],
-    bookAuthor: selectedBookInfo[2],
-    bookPublisher: selectedBookInfo[3],
-    bookPrice: selectedBookInfo[5],
-    bookPubDate: selectedBookInfo[6],
-    tradePrice: inputPrice,
-    bookState: bookState,
-    bookDsc: inputDsc,
-    tradeWay: tradeMethod,
-    tradeDirect: directPlace && directPlace,
-    date: uploadDate,
   };
 
   const onOpenInfo = () => {

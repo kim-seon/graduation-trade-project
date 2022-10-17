@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,16 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 
-export const ChatRoomScreen = () => {
+export const ChatRoomScreen = (data, {route}) => {
+  const navigation = useNavigation();
+  const [userInfo, setUserInfo] = useState([]);
+
+  useEffect(() => {
+    setUserInfo(data.data);
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.listView}>

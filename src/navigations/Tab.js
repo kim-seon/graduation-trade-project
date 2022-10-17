@@ -1,15 +1,31 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useIsFocused} from '@react-navigation/native';
 import {Home, Chat, MyPage} from '../screens/TabScreen';
 import {HomeScreen} from '../screens/HomeScreen/HomeScreen';
 import {ChatRoomScreen} from '../screens/ChatRoomScreen/ChatRoomScreen';
 import {MyPageScreen} from '../screens/MyPageScreen/MyPageScreen';
 import {View, StyleSheet, Text} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loding from '../components/Loading';
 
 const Tab = createBottomTabNavigator();
 
-const TabNavigation = () => {
+const TabNavigation = params => {
+  const [userInfo, setUserInfo] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    setLoading(true);
+    auth().onAuthStateChanged(user => {
+      setUserInfo(user);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <Tab.Navigator
       initialRouteName="홈"
@@ -19,7 +35,7 @@ const TabNavigation = () => {
       }}>
       <Tab.Screen
         name="홈"
-        component={HomeScreen}
+        children={() => <HomeScreen data={userInfo} />}
         options={{
           tabBarIcon: ({focused}) => (
             <Ionicons
@@ -32,7 +48,7 @@ const TabNavigation = () => {
       />
       <Tab.Screen
         name="채팅방"
-        component={ChatRoomScreen}
+        children={() => <ChatRoomScreen data={userInfo} />}
         options={{
           tabBarIcon: ({focused}) => (
             <Ionicons
@@ -45,7 +61,7 @@ const TabNavigation = () => {
       />
       <Tab.Screen
         name="마이페이지"
-        component={MyPageScreen}
+        children={() => <MyPageScreen data={userInfo} />}
         options={{
           tabBarIcon: ({focused}) => (
             <Ionicons

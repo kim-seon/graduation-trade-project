@@ -12,6 +12,7 @@ const LoginScreen = ({navigation}) => {
   const [userPassword, setUserPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errortext, setErrortext] = useState('');
+  const [userPost, setUserPost] = useState([]);
   const passwordInputRef = createRef();
 
   const onLoginPressed = () => {
@@ -36,7 +37,9 @@ const LoginScreen = ({navigation}) => {
         ).catch(function (err) {
           console.log(err);
         });
-        navigation.navigate('Tab');
+        navigation.navigate('Tab', {
+          params: {userData: JSON.stringify(userCredentials.user)},
+        });
       });
   };
 

@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  BackHandler,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
@@ -15,6 +16,15 @@ const DetailScreen = ({navigation, route}) => {
   const [userInfo, setUserInfo] = useState([]);
   const [userPost, setUserPost] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [heartPress, setHeartPress] = useState(false);
+
+  const handlePressBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.navigate('Tab', {screen: 'Home'});
+      return true;
+    }
+    return false;
+  };
 
   const reference = firebase
     .app()
@@ -27,106 +37,157 @@ const DetailScreen = ({navigation, route}) => {
     AsyncStorage.getItem('users').then(value => {
       const data = JSON.parse(value);
       setUserInfo(data);
-      reference.ref(`/posts/${route.params.id}`).on('value', snapshot => {
-        setLoading(false);
-        const post = snapshot.val();
-        setUserPost(post);
-      });
+      reference
+        .ref(`/posts/${route.params.id || route.params.postNum}`)
+        .on('value', snapshot => {
+          const post = snapshot.val();
+          setUserPost(post);
+        });
     });
-  }, [reference, route.params.id]);
+    setLoading(false);
+    BackHandler.addEventListener('hardwareBackPress', handlePressBack);
+    return () => {
+      BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
+    };
+  }, []);
+
+  const onHeartPress = () => {
+    setHeartPress(!heartPress);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.bookImageContainer}>
         <Text>사진</Text>
       </View>
-      <ScrollView style={styles.bookInfoContainer}>
-        <Text style={styles.bookTitleText}>{userPost.bookTitle}</Text>
-        <View style={{flexDirection: 'row'}}>
-          <Text
-            style={[styles.writerInfoText, {width: '15%', fontWeight: 'bold'}]}>
-            저자
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.writerInfoText, {width: '80%'}]}>
-            {userPost.bookAuthor}
-          </Text>
-        </View>
-        <View style={{flexDirection: 'row'}}>
-          <Text
-            style={[styles.writerInfoText, {width: '15%', fontWeight: 'bold'}]}>
-            출판사
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.writerInfoText, {width: '80%'}]}>
-            {userPost.bookPublisher}
-          </Text>
-        </View>
-        <View style={{flexDirection: 'row'}}>
-          <Text
-            style={[styles.writerInfoText, {width: '15%', fontWeight: 'bold'}]}>
-            출판날짜
-          </Text>
-          <Text
-            numberOfLines={2}
-            style={[styles.writerInfoText, {width: '80%'}]}>
-            {userPost.bookPubDate}
-          </Text>
-        </View>
-        <View
-          style={{
-            borderBottomWidth: 1,
-            borderBottomColor: '#393E46',
-            margin: 5,
-          }}
-        />
-        <View style={{flexDirection: 'row'}}>
-          <Text style={styles.bookOrignPriceText}>{userPost.bookPrice}원</Text>
-          <Text style={styles.bookPriceText}>{userPost.tradePrice}원</Text>
-        </View>
-        <View style={styles.bookStateInfoContainer}>
-          <View style={styles.bookStateText}>
-            <Text style={styles.detailText}>판매자 정보</Text>
-            <Text style={styles.dscText}>
-              {userPost.sellerSchool} | {userPost.seller}
+      <View style={styles.bookInfoContainer}>
+        <ScrollView style={{flexGrow: 1, height: '60%'}}>
+          <Text style={styles.bookTitleText}>{userPost.bookTitle}</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text
+              style={[
+                styles.writerInfoText,
+                {width: '15%', fontWeight: 'bold'},
+              ]}>
+              저자
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.writerInfoText, {width: '80%'}]}>
+              {userPost.bookAuthor}
             </Text>
           </View>
-          <View style={styles.bookStateText}>
-            <Text style={styles.detailText}>책 상태</Text>
-            <Text style={styles.dscText}>{userPost.bookState}</Text>
-          </View>
-          <View style={styles.bookTradeText}>
-            <Text style={styles.detailText}>선호거래방식</Text>
-            <Text style={styles.dscText}>
-              {userPost.tradeWay}
-              {userPost.tradeDirect ? (
-                <Text>({userPost.tradeDirect})</Text>
-              ) : (
-                ''
-              )}
+          <View style={{flexDirection: 'row'}}>
+            <Text
+              style={[
+                styles.writerInfoText,
+                {width: '15%', fontWeight: 'bold'},
+              ]}>
+              출판사
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.writerInfoText, {width: '80%'}]}>
+              {userPost.bookPublisher}
             </Text>
           </View>
-        </View>
-        <View style={styles.bookStateInfoContainer}>
-          
-          <View style={styles.bookTradeText}>
-            <Text style={styles.detailText}>{userPost.bookDsc}</Text>
+          <View style={{flexDirection: 'row'}}>
+            <Text
+              style={[
+                styles.writerInfoText,
+                {width: '15%', fontWeight: 'bold'},
+              ]}>
+              출판날짜
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.writerInfoText, {width: '80%'}]}>
+              {userPost.bookPubDate}
+            </Text>
           </View>
-        </View>
-      </ScrollView>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: '#393E46',
+              margin: 5,
+            }}
+          />
+          <View style={{flexDirection: 'row'}}>
+            <Text style={styles.bookOrignPriceText}>
+              {userPost.bookPrice}원
+            </Text>
+            <Text style={styles.bookPriceText}>{userPost.tradePrice}원</Text>
+          </View>
+          <View style={styles.bookStateInfoContainer}>
+            <View style={styles.bookStateText}>
+              <Text style={styles.detailText}>판매자 정보</Text>
+              <Text style={styles.dscText}>
+                {userPost.sellerSchool} | {userPost.seller}
+              </Text>
+            </View>
+            <View style={styles.bookStateText}>
+              <Text style={styles.detailText}>책 상태</Text>
+              <Text style={styles.dscText}>{userPost.bookState}</Text>
+            </View>
+            <View style={styles.bookTradeText}>
+              <Text style={styles.detailText}>선호거래방식</Text>
+              <Text style={styles.dscText}>
+                {userPost.tradeWay}
+                {userPost.tradeDirect ? (
+                  <Text>({userPost.tradeDirect})</Text>
+                ) : (
+                  ''
+                )}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.bookStateInfoContainer}>
+            <View style={{padding: 8}}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}>
+                <Text>업로드</Text>
+                <Text>{userPost.date}</Text>
+              </View>
+              <Text style={[styles.detailText, {marginTop: 10}]}>
+                {userPost.bookDsc}
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
       <View style={styles.functionContainer}>
         <TouchableOpacity style={styles.chatBtn}>
           <Text style={styles.chatBtnText}>채팅 보내기</Text>
         </TouchableOpacity>
         <View style={styles.emoticonContainer}>
-          <Ionicons
-            name="ios-heart-outline"
-            size={35}
-            color={'#a0a0a0'}
-            style={{alignSelf: 'center'}}
-          />
+          <TouchableOpacity onPress={onHeartPress}>
+            {heartPress === true ? (
+              <Ionicons
+                name="ios-heart-sharp"
+                size={35}
+                color={'#FFD400'}
+                style={{alignSelf: 'center', marginRight: 10}}
+              />
+            ) : (
+              <Ionicons
+                name="ios-heart-outline"
+                size={35}
+                color={'#a0a0a0'}
+                style={{alignSelf: 'center', marginRight: 10}}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Ionicons
+              name="ios-share-social"
+              size={30}
+              color={'#a0a0a0'}
+              style={{alignSelf: 'center'}}
+            />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -177,7 +238,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderColor: '#21D380',
-    padding: 8,
+    padding: 6,
   },
   bookDscText: {
     flexDirection: 'row',
@@ -187,7 +248,7 @@ const styles = StyleSheet.create({
   },
   bookTradeText: {
     flexDirection: 'row',
-    padding: 8,
+    padding: 6,
     justifyContent: 'space-between',
   },
   detailText: {
@@ -205,10 +266,14 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   functionContainer: {
+    height: '10%',
     position: 'absolute',
     bottom: 0,
+    left: 0,
+    right: 0,
     width: '100%',
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 20,
     justifyContent: 'space-between',
     backgroundColor: 'white',
