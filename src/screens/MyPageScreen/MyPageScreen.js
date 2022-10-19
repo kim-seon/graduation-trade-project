@@ -10,8 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import {firebase} from '@react-native-firebase/database';
+import {firebase, orderBy} from '@react-native-firebase/database';
 
 export const MyPageScreen = (data, {route}) => {
   const navigation = useNavigation();
@@ -25,6 +24,10 @@ export const MyPageScreen = (data, {route}) => {
   const [userPosts, setUserPosts] = useState({});
   const [userDB, setUserDB] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sellListBtn, setSellListBtn] = useState(false);
+  const [likeListBtn, setLikeListBtn] = useState(false);
+
+  const isFocused = useIsFocused();
 
   const onLogoutPress = () => {
     AsyncStorage.removeItem('users');
@@ -40,33 +43,28 @@ export const MyPageScreen = (data, {route}) => {
 
   let list = [];
   useEffect(() => {
+    setLoading(true);
     setUserInfo(data.data);
-    const getData = () => {
-      try {
-        auth().onAuthStateChanged(user => {
-          reference
-            .ref(`/users/${user.uid}`)
-            .once('value')
-            .then(snapshot => {
-              const userData = snapshot.val();
-              setUserDB(userData);
-              reference
-                .ref('/posts/')
-                .orderByChild('sellerUid')
-                .equalTo(userDB.id)
-                .on('value', value => {
-                  for (var i in value.val()) {
-                    list.push(value.val()[i]);
-                    setUserPosts(list);
-                  }
-                });
-            });
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    };
-    getData();
+    reference
+      .ref(`/users/${userInfo.uid}`)
+      .once('value')
+      .then(snapshot => {
+        const userData = snapshot.val();
+        setUserDB(userData);
+        console.log(userData);
+        setLoading(false);
+        reference
+          .ref('/posts/')
+          .orderByChild('sellerUid')
+          .equalTo(userData.id)
+          .on('value', value => {
+            for (var i in value.val()) {
+              list.push(value.val()[i]);
+              setUserPosts(list);
+              console.log(list);
+            }
+          });
+      });
   }, []);
 
   const renderPostList = ({item}) => {
@@ -103,22 +101,24 @@ export const MyPageScreen = (data, {route}) => {
           }}
         />
         <Text style={styles.myNickname}>{userInfo.displayName}</Text>
-        <Text style={styles.mySchoolName}>{userDB.school}</Text>
+        <Text style={styles.mySchoolName}>{userDB && userDB.school}</Text>
       </View>
       <View style={styles.sellBookContainer}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setSellListBtn(!sellListBtn)}>
           <Text style={styles.listText}>> 판매하는 책 목록</Text>
         </TouchableOpacity>
-        <View>
-          <FlatList
-            data={userPosts}
-            listKey={(item, index) => 'D' + index.toString()}
-            keyExtractor={(item, index) => 'D' + index.toString()}
-            renderItem={renderPostList}
-            disableVirtualization={false}
-            onEndReachedThreshold={0.2}
-          />
-        </View>
+        {sellListBtn && (
+          <View>
+            <FlatList
+              data={userPosts}
+              listKey={(item, index) => 'D' + index.toString()}
+              keyExtractor={(item, index) => 'D' + index.toString()}
+              renderItem={renderPostList}
+              disableVirtualization={false}
+              onEndReachedThreshold={0.2}
+            />
+          </View>
+        )}
       </View>
       <View style={styles.likeBookContainer}>
         <TouchableOpacity>

@@ -34,6 +34,7 @@ export const HomeScreen = (data, {route}) => {
   let list = [];
   useEffect(() => {
     setUserInfo(data.data);
+    console.log(userInfo);
     setLoading(true);
     // auth().onAuthStateChanged(user => {
     //   setUserInfo(user);
@@ -54,18 +55,16 @@ export const HomeScreen = (data, {route}) => {
             uploadDate: snapshot.val()[i].uploadDate,
           });
           setPostList(list);
+          //console.log(postList);
           setLoading(false);
         }
       });
-  }, []);
-
+  }, [isFocused]);
 
   const renderPostList = ({item}) => {
     return (
       <TouchableOpacity
-        onPress={() =>
-          navigation.navigate('Detail', {postNum: item.uploadDate})
-        }>
+        onPress={() => navigation.navigate('Detail', {post: item})}>
         <View style={styles.listView}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>
             {item.bookTitle}

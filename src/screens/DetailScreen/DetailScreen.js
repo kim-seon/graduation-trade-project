@@ -8,15 +8,19 @@ import {
   BackHandler,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const DetailScreen = ({navigation, route}) => {
+const DetailScreen = ({route}) => {
   const [userInfo, setUserInfo] = useState([]);
   const [userPost, setUserPost] = useState([]);
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
+
+  const navigation = useNavigation();
 
   const handlePressBack = () => {
     if (navigation.canGoBack()) {
@@ -34,11 +38,17 @@ const DetailScreen = ({navigation, route}) => {
 
   useEffect(() => {
     setLoading(true);
-    AsyncStorage.getItem('users').then(value => {
-      const data = JSON.parse(value);
-      setUserInfo(data);
+    auth().onAuthStateChanged(user => {
+      console.log(user);
+      setUserInfo(user);
+      console.log(userInfo);
       reference
-        .ref(`/posts/${route.params.id || route.params.postNum}`)
+        .ref(
+          `/posts/${
+            (route.params.id && route.params.id.uploadDate) ||
+            (route.params.post && route.params.post.uploadDate)
+          }`,
+        )
         .on('value', snapshot => {
           const post = snapshot.val();
           setUserPost(post);
@@ -50,6 +60,10 @@ const DetailScreen = ({navigation, route}) => {
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
     };
   }, []);
+
+  const onChatPress = () => {
+    navigation.navigate('ChatRoom', {sendInfo: userPost});
+  };
 
   const onHeartPress = () => {
     setHeartPress(!heartPress);
@@ -160,7 +174,11 @@ const DetailScreen = ({navigation, route}) => {
       </View>
       <View style={styles.functionContainer}>
         <TouchableOpacity style={styles.chatBtn}>
-          <Text style={styles.chatBtnText}>채팅 보내기</Text>
+          {(userInfo && userInfo.uid) !== userPost.sellerUid ? (
+            <Text style={styles.chatBtnText}>채팅 보내기</Text>
+          ) : (
+            <Text style={styles.chatBtnText}>나의 채팅방</Text>
+          )}
         </TouchableOpacity>
         <View style={styles.emoticonContainer}>
           <TouchableOpacity onPress={onHeartPress}>

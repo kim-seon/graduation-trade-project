@@ -54,18 +54,21 @@ const WriteScreen = ({navigation, route}) => {
   const [infoVisible, setInfoVisible] = useState(false);
   const [writeNum, setWriteNum] = useState('');
   const [uploadDate, setUploadDate] = useState();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
     reference
       .ref(`/users/${route.params.data.uid}`)
       .once('value')
       .then(snapshot => {
         const userData = snapshot.val();
-        console.log(userData);
         setUserDB(userData);
         setLoading(false);
+      })
+      .catch(err => {
+        console.log(err);
       });
   }, []);
 
@@ -77,9 +80,9 @@ const WriteScreen = ({navigation, route}) => {
     submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
     printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
     let writeData = {
-      seller: route.params.displayName,
-      sellerUid: route.params.uid,
-      sellerSchool: userDB.school,
+      seller: route.params.data.displayName,
+      sellerUid: route.params.data.uid,
+      sellerSchool: userDB && userDB.school,
       stateImage: selectedImages,
       bookCover: selectedBookInfo[0],
       bookTitle: selectedBookInfo[1],
@@ -102,7 +105,7 @@ const WriteScreen = ({navigation, route}) => {
       .ref(`/posts/${submitDate}`)
       .set(writeData)
       .then(() => {
-        navigation.navigate('Detail', {id: submitDate});
+        navigation.navigate('Detail', {id: writeData});
       })
       .catch(function (err) {
         console.log(err);

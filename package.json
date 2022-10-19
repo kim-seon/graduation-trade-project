@@ -30,6 +30,7 @@
     "react": "17.0.2",
     "react-native": "0.68.2",
     "react-native-gesture-handler": "^2.6.1",
+    "react-native-gifted-chat": "^1.0.4",
     "react-native-image-picker": "^4.10.0",
     "react-native-paper": "^4.12.4",
     "react-native-picker-select": "^8.0.4",

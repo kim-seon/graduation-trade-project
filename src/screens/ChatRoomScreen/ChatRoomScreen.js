@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -7,61 +7,168 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import {firebase} from '@react-native-firebase/database';
+import {
+  GiftedChat,
+  Bubble,
+  Send,
+  InputToolbar,
+  SystemMessage,
+} from 'react-native-gifted-chat';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 
-export const ChatRoomScreen = (data, {route}) => {
-  const navigation = useNavigation();
+const ChatRoomScreen = ({route}) => {
+  const reference = firebase
+    .app()
+    .database(
+      'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    );
+
+  const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState([]);
+  const [messages, setMessages] = useState([
+    {
+      _id: 0,
+      text: '🔊 안녕하세요! 안전하고 쿨한 거래를 위해 고운 말로 대화해주세요',
+      createdAt: new Date().getTime(),
+      system: true,
+    },
+  ]);
+  const [uid, setUid] = useState('');
+  const [reportUser, setReportUser] = useState(null);
+  const [dbKey, setDbKey] = useState('');
+
+  const isFocused = useIsFocused();
 
   useEffect(() => {
-    setUserInfo(data.data);
+    setLoading(true);
+    setUserInfo({
+      _id: route.params.data.uid,
+      name: route.params.data.displayName,
+      email: route.params.data.email,
+    });
+    const changeValue = reference
+      .ref(`chats/${userInfo._id}`)
+      .orderByChild('createdAt', 'desc')
+      .on('child_added', snap => {
+        const {_id, timestamp, text, user} = snap.val();
+        const createdAt = new Date(timestamp);
+        const message = {
+          _id,
+          createdAt,
+          text,
+          user,
+        };
+        setMessages(GiftedChat.append(...messages, message));
+      });
+    return () =>
+      reference.ref(`chats/${userInfo._id}`).off('child_added', changeValue);
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.listView}>
-        <View style={styles.chatInfo}>
-          <Text style={styles.chatNickname}>닉네임</Text>
-          <Text style={styles.chatBookTitle}>책 제목 | 날짜</Text>
+  const onSend = newMessage => {
+    let today = new Date();
+    let timestamp = today.toISOString();
+    for (let i = 0; i < newMessage.length; i++) {
+      let random = Math.round(Math.random() * 1000000);
+      const {text, user} = newMessage[i];
+      const message = {_id: random, text, user, createdAt: timestamp};
+      reference
+        .ref(`chats/${userInfo._id}`)
+        .push(message)
+        .then(res => {
+          setDbKey(res.key);
+        });
+      setMessages([message, ...messages]);
+    }
+  };
+
+  function customtInputToolbar(props) {
+    return (
+      <InputToolbar
+        {...props}
+        containerStyle={{
+          backgroundColor: 'white',
+          borderTopColor: '#FFD400',
+          borderTopWidth: 1,
+        }}
+      />
+    );
+  }
+
+  function renderBubble(props) {
+    return (
+      <Bubble
+        {...props}
+        wrapperStyle={{
+          right: {
+            backgroundColor: '#21D380',
+          },
+          left: {
+            borderWidth: 1,
+            borderColor: '#21D380',
+            backgroundColor: 'white',
+          },
+        }}
+        textStyle={{
+          right: {
+            color: '#F2F2F2',
+          },
+          left: {
+            color: '#393E46',
+          },
+        }}
+      />
+    );
+  }
+
+  function renderSystemMessage(props) {
+    return (
+      <SystemMessage
+        {...props}
+        containerStyle={{backgroundColor: '#FFD400'}}
+        textStyle={{
+          color: '#F2F2F2',
+          fontWeight: 'bold',
+          fontSize: 13,
+          padding: 8,
+          textAlign: 'center',
+        }}
+      />
+    );
+  }
+
+  function renderSend(props) {
+    return (
+      <Send {...props}>
+        <View style={{justifyContent: 'center', alignItems: 'center'}}>
+          <MaterialCommunityIcons
+            name="send-circle"
+            size={42}
+            color={'#FFD400'}
+          />
         </View>
-        <Text style={styles.chatPreview}>최근 메시지 미리보기</Text>
-      </View>
+      </Send>
+    );
+  }
+
+  return (
+    <View style={{flex: 1}}>
+      <GiftedChat
+        messages={messages}
+        onSend={newMessage => onSend(newMessage)}
+        user={userInfo}
+        placeholder="메시지를 입력해주세요."
+        alwaysShowSend
+        renderSystemMessage={renderSystemMessage}
+        renderSend={renderSend}
+        renderBubble={renderBubble}
+        renderInputToolbar={customtInputToolbar}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#F2F2F2',
-  },
-  listView: {
-    margin: 10,
-    padding: 15,
-    backgroundColor: 'white',
-    borderRadius: 5,
-  },
-  chatInfo: {
-    flexDirection: 'row',
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  chatNickname: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#21D380',
-  },
-  chatBookTitle: {
-    marginLeft: 10,
-    fontSize: 13,
-  },
-  chatPreview: {
-    fontSize: 15,
-    color: '#393E46',
-  },
-  writerSchool: {
-    color: '#FFD400',
-  },
-});
+export default ChatRoomScreen;

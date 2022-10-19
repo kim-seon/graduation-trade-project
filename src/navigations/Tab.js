@@ -5,7 +5,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useIsFocused} from '@react-navigation/native';
 import {Home, Chat, MyPage} from '../screens/TabScreen';
 import {HomeScreen} from '../screens/HomeScreen/HomeScreen';
-import {ChatRoomScreen} from '../screens/ChatRoomScreen/ChatRoomScreen';
+import {ChatScreen} from '../screens/ChatScreen/ChatScreen';
 import {MyPageScreen} from '../screens/MyPageScreen/MyPageScreen';
 import {View, StyleSheet, Text} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -48,7 +48,7 @@ const TabNavigation = params => {
       />
       <Tab.Screen
         name="채팅방"
-        children={() => <ChatRoomScreen data={userInfo} />}
+        children={() => <ChatScreen data={userInfo} />}
         options={{
           tabBarIcon: ({focused}) => (
             <Ionicons

@@ -7,6 +7,7 @@ import {
   FlatList,
   Pressable,
   Alert,
+  Modal,
   TouchableOpacity,
   Keyboard,
 } from 'react-native';
@@ -30,6 +31,7 @@ const RegisterScreen = ({navigation}) => {
   const [userNickname, setUserNickname] = useState('');
   const [userSchool, setUserSchool] = useState('');
   const [userDB, setUserDB] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errortext, setErrortext] = useState('');
 
