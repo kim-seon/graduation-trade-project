@@ -10,7 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
-import {firebase, orderBy} from '@react-native-firebase/database';
+import {firebase} from '@react-native-firebase/database';
 
 export const MyPageScreen = (data, {route}) => {
   const navigation = useNavigation();
@@ -65,7 +65,7 @@ export const MyPageScreen = (data, {route}) => {
             }
           });
       });
-  }, []);
+  }, [userInfo]);
 
   const renderPostList = ({item}) => {
     return (

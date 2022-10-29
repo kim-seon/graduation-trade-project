@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useLayoutEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   BackHandler,
+  LogBox,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
@@ -15,8 +16,9 @@ import {useIsFocused, useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const DetailScreen = ({route}) => {
-  const [userInfo, setUserInfo] = useState([]);
-  const [userPost, setUserPost] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
+  const [userPost, setUserPost] = useState({});
+  const [likeUser, setLikeUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
 
@@ -24,7 +26,7 @@ const DetailScreen = ({route}) => {
 
   const handlePressBack = () => {
     if (navigation.canGoBack()) {
-      navigation.navigate('Tab', {screen: 'Home'});
+      navigation.navigate('Tab', {screen: '홈'});
       return true;
     }
     return false;
@@ -36,37 +38,101 @@ const DetailScreen = ({route}) => {
       'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
 
-  useEffect(() => {
+    useLayoutEffect(() => {
     setLoading(true);
-    auth().onAuthStateChanged(user => {
-      console.log(user);
-      setUserInfo(user);
-      console.log(userInfo);
-      reference
-        .ref(
-          `/posts/${
-            (route.params.id && route.params.id.uploadDate) ||
-            (route.params.post && route.params.post.uploadDate)
-          }`,
-        )
-        .on('value', snapshot => {
-          const post = snapshot.val();
-          setUserPost(post);
-        });
-    });
-    setLoading(false);
+    LogBox.ignoreLogs([
+      'Non-serializable values were found in the navigation state',
+    ]);
+    setUserInfo(route.params.loginUser);
+    reference
+      .ref(
+        `/posts/${
+          (route.params.id && route.params.id.uploadDate) ||
+          (route.params.post && route.params.post.uploadDate)
+        }`,
+      )
+      .on('value', snapshot => {
+        const post = snapshot.val();
+        setUserPost(post);
+        console.log(userPost);
+        setLoading(false);
+        const likesDate = () => {
+          reference
+          .ref(`/posts/${userPost.uploadDate}/likes/`)
+          .orderByChild('userEmail')
+          .equalTo(userInfo.email + '')
+          .on('value', async value => {
+            const likesVal = await value.val();
+            setLikeUser(likesVal);
+            console.log(likeUser);
+          });
+          return likeUser;
+        }
+        likesDate();
+        if (likeUser !== null) {
+          setHeartPress(true);
+        } else {
+          setHeartPress(false);
+        }
+      });
     BackHandler.addEventListener('hardwareBackPress', handlePressBack);
     return () => {
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
     };
-  }, []);
+  }, [userPost]);
 
   const onChatPress = () => {
-    navigation.navigate('ChatRoom', {sendInfo: userPost});
+    navigation.navigate('ChatRoom', {sendInfo: userPost, userInfo: userInfo});
   };
 
   const onHeartPress = () => {
     setHeartPress(!heartPress);
+
+    const increment = firebase.database.ServerValue.increment(1);
+    const decrement = firebase.database.ServerValue.increment(-1);
+
+    if (heartPress === false) {
+      reference
+        .ref(`/posts/${userPost.uploadDate}/`)
+        .update({
+          like_cnt: increment,
+        })
+        .then(() => {
+          reference
+            .ref(`/posts/${userPost.uploadDate}/likes/${userInfo.uid}`)
+            .update({
+              userEmail: userInfo.email,
+              userNickname: userInfo.displayName,
+            })
+            .then(() => {
+              reference
+                .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
+                .update({
+                  sellerUid: userPost.sellerUid,
+                  sellerNickname: userPost.seller,
+                });
+            })
+            .catch(err => console.log(err));
+        });
+    } else {
+      reference
+        .ref(`/posts/${userPost.uploadDate}/`)
+        .update({
+          like_cnt: decrement,
+        })
+        .then(() => {
+          reference
+            .ref(`/posts/${userPost.uploadDate}/likes/`)
+            .child(userInfo.uid)
+            .remove()
+            .then(() => {
+              reference
+                .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
+                .remove();
+            })
+            .catch(err => console.log(err));
+        });
+    }
   };
 
   return (
@@ -173,13 +239,15 @@ const DetailScreen = ({route}) => {
         </ScrollView>
       </View>
       <View style={styles.functionContainer}>
-        <TouchableOpacity style={styles.chatBtn}>
-          {(userInfo && userInfo.uid) !== userPost.sellerUid ? (
+        {(userInfo && userInfo.uid) !== userPost.sellerUid ? (
+          <TouchableOpacity style={styles.chatBtn} onPress={() => onChatPress}>
             <Text style={styles.chatBtnText}>채팅 보내기</Text>
-          ) : (
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.chatBtn}>
             <Text style={styles.chatBtnText}>나의 채팅방</Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
         <View style={styles.emoticonContainer}>
           <TouchableOpacity onPress={onHeartPress}>
             {heartPress === true ? (

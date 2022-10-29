@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useLayoutEffect, useCallback} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Pressable,
   FlatList,
   TouchableOpacity,
+  BackHandler,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,7 +29,8 @@ const ChatRoomScreen = ({route}) => {
     );
 
   const [loading, setLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
+  const [bookInfo, setBookInfo] = useState({});
   const [messages, setMessages] = useState([
     {
       _id: 0,
@@ -41,17 +43,34 @@ const ChatRoomScreen = ({route}) => {
   const [reportUser, setReportUser] = useState(null);
   const [dbKey, setDbKey] = useState('');
 
+  const navigation = useNavigation();
+
+  const handlePressBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.navigate('Tab', {screen: '채팅방'});
+      return true;
+    }
+    return false;
+  };
+
   const isFocused = useIsFocused();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setLoading(true);
+    setBookInfo(route.params.sendInfo);
     setUserInfo({
-      _id: route.params.data.uid,
-      name: route.params.data.displayName,
-      email: route.params.data.email,
+      _id:
+        (route.params.data && route.params.data.uid) ||
+        route.params.userInfo.uid,
+      name:
+        (route.params.data && route.params.data.displayName) ||
+        route.params.userInfo.displayName,
+      email:
+        (route.params.data && route.params.data.email) ||
+        route.params.userInfo.email,
     });
     const changeValue = reference
-      .ref(`chats/${userInfo._id}`)
+      .ref(`chats/${bookInfo.uploadDate}`)
       .orderByChild('createdAt', 'desc')
       .on('child_added', snap => {
         const {_id, timestamp, text, user} = snap.val();
@@ -64,8 +83,11 @@ const ChatRoomScreen = ({route}) => {
         };
         setMessages(GiftedChat.append(...messages, message));
       });
-    return () =>
-      reference.ref(`chats/${userInfo._id}`).off('child_added', changeValue);
+    BackHandler.addEventListener('hardwareBackPress', handlePressBack);
+    return () => {
+      changeValue;
+      BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
+    };
   }, []);
 
   const onSend = newMessage => {
@@ -76,7 +98,7 @@ const ChatRoomScreen = ({route}) => {
       const {text, user} = newMessage[i];
       const message = {_id: random, text, user, createdAt: timestamp};
       reference
-        .ref(`chats/${userInfo._id}`)
+        .ref(`chats/${bookInfo.uploadDate}`)
         .push(message)
         .then(res => {
           setDbKey(res.key);

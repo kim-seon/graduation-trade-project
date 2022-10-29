@@ -14,17 +14,22 @@ import Loding from '../components/Loading';
 const Tab = createBottomTabNavigator();
 
 const TabNavigation = params => {
-  const [userInfo, setUserInfo] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
   const [loading, setLoading] = useState(false);
   const isFocused = useIsFocused();
 
   useEffect(() => {
     setLoading(true);
-    auth().onAuthStateChanged(user => {
-      setUserInfo(user);
-      setLoading(false);
-    });
-  }, []);
+    // auth().onAuthStateChanged(async user => {
+    //   //console.log(user);
+    //   await setUserInfo(user);
+    //   console.log(userInfo);
+    //   setLoading(false);
+    // });
+    setUserInfo(params.params);
+    console.log(userInfo);
+    setLoading(false);
+  }, [userInfo]);
 
   return (
     <Tab.Navigator

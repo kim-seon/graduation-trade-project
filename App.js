@@ -23,7 +23,7 @@ const Stack = createStackNavigator();
 const App = () => {
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
   const [userUid, setUserUid] = useState('');
 
   useEffect(() => {
@@ -38,7 +38,7 @@ const App = () => {
         setIsLogin(false);
       }
     });
-  }, []);
+  }, [userInfo]);
 
   return (
     <NavigationContainer>

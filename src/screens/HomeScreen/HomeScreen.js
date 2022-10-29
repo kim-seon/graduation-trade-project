@@ -34,7 +34,6 @@ export const HomeScreen = (data, {route}) => {
   let list = [];
   useEffect(() => {
     setUserInfo(data.data);
-    console.log(userInfo);
     setLoading(true);
     // auth().onAuthStateChanged(user => {
     //   setUserInfo(user);
@@ -59,12 +58,17 @@ export const HomeScreen = (data, {route}) => {
           setLoading(false);
         }
       });
-  }, [isFocused]);
+  }, [isFocused, userInfo]);
 
   const renderPostList = ({item}) => {
     return (
       <TouchableOpacity
-        onPress={() => navigation.navigate('Detail', {post: item})}>
+        onPress={() =>
+          navigation.navigate('Detail', {
+            post: item,
+            loginUser: userInfo,
+          })
+        }>
         <View style={styles.listView}>
           <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>
             {item.bookTitle}

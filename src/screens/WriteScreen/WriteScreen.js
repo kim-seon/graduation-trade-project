@@ -26,13 +26,14 @@ import {firebase} from '@react-native-firebase/database';
 //import storage, {uploadBytesResumable} from '@react-native-firebase/storage';
 
 const WriteScreen = ({navigation, route}) => {
+  const isFocused = useIsFocused();
   const reference = firebase
     .app()
     .database(
       'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
-  const [userInfo, setUserInfo] = useState([]);
-  const [userDB, setUserDB] = useState([]);
+  const [userInfo, setUserInfo] = useState({});
+  const [userDB, setUserDB] = useState({});
   const [selectedMenu, setSelectedMenu] = useState();
   const [selectedBefore, setSelectedBefore] = useState();
   const [selectedTrade, setSelectedTrade] = useState();
@@ -59,10 +60,10 @@ const WriteScreen = ({navigation, route}) => {
   useEffect(() => {
     setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+    setUserInfo(route.params.data);
     reference
-      .ref(`/users/${route.params.data.uid}`)
-      .once('value')
-      .then(snapshot => {
+      .ref(`/users/${userInfo.uid}`)
+      .once('value', snapshot => {
         const userData = snapshot.val();
         setUserDB(userData);
         setLoading(false);
@@ -406,7 +407,7 @@ const WriteScreen = ({navigation, route}) => {
   const getHeader = () => {
     return (
       <Text style={{fontSize: 16, marginBottom: 5, alignSelf: 'center'}}>
-        <Text style={{color: '#21D380', fontWeight: '700',}}>
+        <Text style={{color: '#21D380', fontWeight: '700'}}>
           {searchKeyword}
         </Text>
         에 대한 검색결과
