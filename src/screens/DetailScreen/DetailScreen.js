@@ -2,6 +2,7 @@ import React, {useEffect, useState, useLayoutEffect} from 'react';
 import {
   View,
   ScrollView,
+  FlatList,
   Text,
   StyleSheet,
   TouchableOpacity,
@@ -22,6 +23,7 @@ const DetailScreen = ({route}) => {
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
 
+  const isFocused = useIsFocused();
   const navigation = useNavigation();
 
   const handlePressBack = () => {
@@ -38,11 +40,12 @@ const DetailScreen = ({route}) => {
       'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
 
-    useLayoutEffect(() => {
+  useLayoutEffect(() => {
     setLoading(true);
     LogBox.ignoreLogs([
       'Non-serializable values were found in the navigation state',
     ]);
+    console.log(route.params.id.stateImage);
     setUserInfo(route.params.loginUser);
     reference
       .ref(
@@ -52,47 +55,47 @@ const DetailScreen = ({route}) => {
         }`,
       )
       .on('value', snapshot => {
+        setLoading(false);
         const post = snapshot.val();
         setUserPost(post);
-        console.log(userPost);
-        setLoading(false);
+        // console.log(userPost);
         const likesDate = () => {
           reference
-          .ref(`/posts/${userPost.uploadDate}/likes/`)
-          .orderByChild('userEmail')
-          .equalTo(userInfo.email + '')
-          .on('value', async value => {
-            const likesVal = await value.val();
-            setLikeUser(likesVal);
-            console.log(likeUser);
-          });
+            .ref(`/posts/${userPost.uploadDate}/likes/`)
+            .orderByChild('userEmail')
+            .equalTo(userInfo.email + '')
+            .on('value', async value => {
+              const likesVal = await value.val();
+              //console.log(likesVal);
+              if (likesVal !== null) {
+                setHeartPress(true);
+              } else {
+                setHeartPress(false);
+              }
+            });
           return likeUser;
-        }
+        };
         likesDate();
-        if (likeUser !== null) {
-          setHeartPress(true);
-        } else {
-          setHeartPress(false);
-        }
       });
     BackHandler.addEventListener('hardwareBackPress', handlePressBack);
     return () => {
+      setLoading(false);
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
     };
-  }, [userPost]);
+  }, []);
 
   const onChatPress = () => {
     navigation.navigate('ChatRoom', {sendInfo: userPost, userInfo: userInfo});
   };
 
-  const onHeartPress = () => {
+  const onHeartPress = async () => {
     setHeartPress(!heartPress);
 
     const increment = firebase.database.ServerValue.increment(1);
     const decrement = firebase.database.ServerValue.increment(-1);
 
     if (heartPress === false) {
-      reference
+      await reference
         .ref(`/posts/${userPost.uploadDate}/`)
         .update({
           like_cnt: increment,
@@ -115,7 +118,7 @@ const DetailScreen = ({route}) => {
             .catch(err => console.log(err));
         });
     } else {
-      reference
+      await reference
         .ref(`/posts/${userPost.uploadDate}/`)
         .update({
           like_cnt: decrement,
@@ -138,7 +141,7 @@ const DetailScreen = ({route}) => {
   return (
     <View style={styles.container}>
       <View style={styles.bookImageContainer}>
-        <Text>사진</Text>
+        <FlatList />
       </View>
       <View style={styles.bookInfoContainer}>
         <ScrollView style={{flexGrow: 1, height: '60%'}}>
@@ -245,7 +248,7 @@ const DetailScreen = ({route}) => {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.chatBtn}>
-            <Text style={styles.chatBtnText}>나의 채팅방</Text>
+            <Text style={styles.chatBtnText}>내 채팅방</Text>
           </TouchableOpacity>
         )}
         <View style={styles.emoticonContainer}>

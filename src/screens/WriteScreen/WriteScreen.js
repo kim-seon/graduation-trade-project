@@ -23,9 +23,10 @@ import {useIsFocused} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
-//import storage, {uploadBytesResumable} from '@react-native-firebase/storage';
+import storage, {ref, uploadBytesResumable, getDownloadURL} from '@react-native-firebase/storage';
 
 const WriteScreen = ({navigation, route}) => {
+
   const isFocused = useIsFocused();
   const reference = firebase
     .app()
@@ -56,35 +57,50 @@ const WriteScreen = ({navigation, route}) => {
   const [writeNum, setWriteNum] = useState('');
   const [uploadDate, setUploadDate] = useState();
   const [loading, setLoading] = useState(false);
+  const [photosURL, setPhotosURL] = useState({}); // 업로드 완료된 사진 링크들
+  const [progress, setProgress] = useState(0); // 업로드 진행상태
 
   useEffect(() => {
     setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
     setUserInfo(route.params.data);
-    reference
-      .ref(`/users/${userInfo.uid}`)
-      .once('value', snapshot => {
-        const userData = snapshot.val();
-        setUserDB(userData);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-  }, []);
+    reference.ref(`/users/${userInfo.uid}`).on('value', async snapshot => {
+      const userData = await snapshot.val();
+      setUserDB(userData);
+      console.log(userDB);
+      setLoading(false);
+    });
+  }, [userInfo.uid, photosURL]);
 
   let submitDate = null;
   let printDate = null;
 
   const onSubmitPress = async e => {
+    e.preventDefault();
+
     const currentDate = new Date();
     submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
     printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
+
+    selectedImages?.map((file, index) => {
+      const storageRef = storage().ref(
+        `images/${submitDate}/${submitDate + '_' + file.fileName}`,
+      );
+      const task = storageRef.putFile(file.realPath);
+      task.on('state_changed', snapshot => {
+        const urls = snapshot.ref.getDownloadURL();
+        urls.then(url => {
+          setPhotosURL(url);
+          console.log(photosURL);
+        });
+      });
+    });
+
     let writeData = {
       seller: route.params.data.displayName,
       sellerUid: route.params.data.uid,
       sellerSchool: userDB && userDB.school,
-      stateImage: selectedImages,
+      stateImage: photosURL,
       bookCover: selectedBookInfo[0],
       bookTitle: selectedBookInfo[1],
       bookAuthor: selectedBookInfo[2],
@@ -101,12 +117,15 @@ const WriteScreen = ({navigation, route}) => {
       date: printDate,
       uploadDate: submitDate,
     };
-    e.preventDefault();
+
     await reference
       .ref(`/posts/${submitDate}`)
       .set(writeData)
       .then(() => {
-        navigation.navigate('Detail', {id: writeData});
+        navigation.navigate('Detail', {
+          id: writeData,
+          loginUser: userInfo,
+        });
       })
       .catch(function (err) {
         console.log(err);

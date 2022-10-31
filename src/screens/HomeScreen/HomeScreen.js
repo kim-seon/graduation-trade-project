@@ -42,6 +42,7 @@ export const HomeScreen = (data, {route}) => {
       .ref('/posts/')
       .orderByChild('uploadDate')
       .on('value', snapshot => {
+        //console.log(snapshot.val());
         for (var i in snapshot.val()) {
           list.push({
             bookTitle: snapshot.val()[i].bookTitle,
@@ -54,7 +55,6 @@ export const HomeScreen = (data, {route}) => {
             uploadDate: snapshot.val()[i].uploadDate,
           });
           setPostList(list);
-          //console.log(postList);
           setLoading(false);
         }
       });
