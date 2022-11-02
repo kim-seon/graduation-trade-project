@@ -45,6 +45,7 @@ export const HomeScreen = (data, {route}) => {
         //console.log(snapshot.val());
         for (var i in snapshot.val()) {
           list.push({
+            ...list,
             bookTitle: snapshot.val()[i].bookTitle,
             bookAuthor: snapshot.val()[i].bookAuthor,
             bookPublisher: snapshot.val()[i].bookPublisher,

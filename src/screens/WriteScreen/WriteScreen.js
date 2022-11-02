@@ -12,6 +12,7 @@ import {
   Image,
   Modal,
   LogBox,
+  Alert,
   RefreshControl,
 } from 'react-native';
 import {ScrollView} from 'react-native-gesture-handler';
@@ -23,7 +24,7 @@ import {useIsFocused} from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
-import storage, {ref, uploadBytesResumable, getDownloadURL} from '@react-native-firebase/storage';
+import storage, {getDownloadURL} from '@react-native-firebase/storage';
 
 const WriteScreen = ({navigation, route}) => {
 
@@ -54,10 +55,9 @@ const WriteScreen = ({navigation, route}) => {
   const [imgBtnTxt, setimgBtnTxt] = useState('사진 업로드(최대 3장)');
   const [selectedBookInfo, setSelectedBookInfo] = useState([]);
   const [infoVisible, setInfoVisible] = useState(false);
-  const [writeNum, setWriteNum] = useState('');
   const [uploadDate, setUploadDate] = useState();
   const [loading, setLoading] = useState(false);
-  const [photosURL, setPhotosURL] = useState({}); // 업로드 완료된 사진 링크들
+  const [photosURL, setPhotosURL] = useState([]); // 업로드 완료된 사진 링크들
   const [progress, setProgress] = useState(0); // 업로드 진행상태
 
   useEffect(() => {
@@ -68,39 +68,27 @@ const WriteScreen = ({navigation, route}) => {
       const userData = await snapshot.val();
       setUserDB(userData);
       console.log(userDB);
+      console.log(selectedImages);
       setLoading(false);
     });
-  }, [userInfo.uid, photosURL]);
+  }, [userInfo.uid]);
 
   let submitDate = null;
   let printDate = null;
 
-  const onSubmitPress = async e => {
+  const onSubmitPress = e => {
     e.preventDefault();
-
     const currentDate = new Date();
     submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
     printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
 
-    selectedImages?.map((file, index) => {
-      const storageRef = storage().ref(
-        `images/${submitDate}/${submitDate + '_' + file.fileName}`,
-      );
-      const task = storageRef.putFile(file.realPath);
-      task.on('state_changed', snapshot => {
-        const urls = snapshot.ref.getDownloadURL();
-        urls.then(url => {
-          setPhotosURL(url);
-          console.log(photosURL);
-        });
-      });
-    });
+    imageUpload();
 
     let writeData = {
       seller: route.params.data.displayName,
       sellerUid: route.params.data.uid,
       sellerSchool: userDB && userDB.school,
-      stateImage: photosURL,
+      stateImage: photosURL && photosURL,
       bookCover: selectedBookInfo[0],
       bookTitle: selectedBookInfo[1],
       bookAuthor: selectedBookInfo[2],
@@ -118,7 +106,7 @@ const WriteScreen = ({navigation, route}) => {
       uploadDate: submitDate,
     };
 
-    await reference
+    reference
       .ref(`/posts/${submitDate}`)
       .set(writeData)
       .then(() => {
@@ -200,6 +188,32 @@ const WriteScreen = ({navigation, route}) => {
     );
   };
 
+  const imageUpload = res => {
+    let imgArr = [];
+    setLoading(true);
+    console.log('arr: ' + JSON.stringify(res));
+    res?.map((file, index) => {
+      const storageRef = storage().ref(
+        `images/${file.bucketId}/${file.bucketId + '_' + file.fileName}`,
+      );
+      const task = storageRef.putFile(file.realPath);
+      task.on(
+        'state_changed',
+        snapshot => {
+          console.log(snapshot);
+        },
+        err => console.log(err),
+        () => {
+          task.snapshot.ref.getDownloadURL().then(url => {
+            setPhotosURL(old => [...old, url]);
+            setLoading(false);
+            console.log(photosURL);
+          });
+        },
+      );
+    });
+  };
+
   const onSelectedImages = async () => {
     const response = await MultipleImagePicker.openPicker({
       usedCameraButton: true,
@@ -210,6 +224,7 @@ const WriteScreen = ({navigation, route}) => {
     });
     setSelectImgBtn(true);
     setSelectedImages(response);
+    imageUpload(response);
   };
 
   const onDelete = value => {
@@ -224,20 +239,21 @@ const WriteScreen = ({navigation, route}) => {
   };
 
   const renderImage = ({item, index}) => {
+    console.log(item);
     return (
       <View>
         <Image
           source={{
-            uri: item.path,
+            uri: item,
           }}
           style={styles.imgUpload}
         />
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => onDelete(item)}
           activeOpacity={0.9}
           style={styles.buttonDelete}>
           <Text style={styles.titleDelete}>삭제</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     );
   };
@@ -477,12 +493,12 @@ const WriteScreen = ({navigation, route}) => {
       </Modal>
       <View style={styles.infoContainer}>
         <View>
-          {selectedImages.length > 0 && (
+          {photosURL.length > 0 && (
             <FlatList
               contentContainerStyle={{width: '100%', alignItems: 'center'}}
-              data={selectedImages}
+              data={photosURL}
               listKey={(item, index) => 'D' + index.toString()}
-              keyExtractor={(item, index) => item.path + index}
+              keyExtractor={(item, index) => item + index}
               renderItem={renderImage}
               numColumns={3}
               scrollEnabled={false}

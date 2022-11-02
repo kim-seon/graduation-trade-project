@@ -2,12 +2,14 @@ import React, {useEffect, useState, useLayoutEffect} from 'react';
 import {
   View,
   ScrollView,
+  Dimensions,
   FlatList,
   Text,
   StyleSheet,
   TouchableOpacity,
   BackHandler,
   LogBox,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
@@ -15,6 +17,10 @@ import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {SliderBox} from 'react-native-image-slider-box';
+
+const {width} = Dimensions.get('window');
+const height = (width * 100) / 80;
 
 const DetailScreen = ({route}) => {
   const [userInfo, setUserInfo] = useState({});
@@ -22,6 +28,7 @@ const DetailScreen = ({route}) => {
   const [likeUser, setLikeUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const isFocused = useIsFocused();
   const navigation = useNavigation();
@@ -42,10 +49,11 @@ const DetailScreen = ({route}) => {
 
   useLayoutEffect(() => {
     setLoading(true);
+    console.log(height);
     LogBox.ignoreLogs([
       'Non-serializable values were found in the navigation state',
     ]);
-    console.log(route.params.id.stateImage);
+    //console.log(route.params.id.stateImage);
     setUserInfo(route.params.loginUser);
     reference
       .ref(
@@ -55,10 +63,9 @@ const DetailScreen = ({route}) => {
         }`,
       )
       .on('value', snapshot => {
-        setLoading(false);
         const post = snapshot.val();
         setUserPost(post);
-        // console.log(userPost);
+        console.log(userPost.stateImage);
         const likesDate = () => {
           reference
             .ref(`/posts/${userPost.uploadDate}/likes/`)
@@ -72,6 +79,7 @@ const DetailScreen = ({route}) => {
               } else {
                 setHeartPress(false);
               }
+              setLoading(false);
             });
           return likeUser;
         };
@@ -138,13 +146,59 @@ const DetailScreen = ({route}) => {
     }
   };
 
+  const renderImage = ({item, index}) => {
+    return (
+      <Image
+        key={index}
+        source={{
+          uri: item,
+        }}
+        style={{width: width, height: height, resizeMode:'cover'}}
+      />
+    );
+  };
+
+  const changeActive = ({nativeEvent}) => {
+    const slide = Math.ceil(
+      nativeEvent.contentOffset.x / nativeEvent.layoutMeasurement.width,
+    );
+    if (slide !== activeIndex) {
+      setActiveIndex(slide);
+      console.log(activeIndex);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.bookImageContainer}>
-        <FlatList />
+        <FlatList
+          data={userPost.stateImage}
+          listKey={(item, index) => 'D' + index.toString()}
+          keyExtractor={(item, index) => item + index}
+          renderItem={renderImage}
+          onScroll={changeActive}
+          horizontal
+          pagingEnabled={true}
+          showsHorizontalScrollIndicator={false}
+        />
+        <View style={styles.pagination}>
+          {userPost.stateImage?.map((item, index) => {
+            return (
+              <Text
+                key={index}
+                style={
+                  index === activeIndex
+                    ? styles.pagingActiveText
+                    : styles.pagingText
+                }>
+                ●
+              </Text>
+            );
+          })}
+        </View>
       </View>
       <View style={styles.bookInfoContainer}>
-        <ScrollView style={{flexGrow: 1, height: '60%'}}>
+        <ScrollView style={{flexGrow:1}}>
           <Text style={styles.bookTitleText}>{userPost.bookTitle}</Text>
           <View style={{flexDirection: 'row'}}>
             <Text
@@ -290,10 +344,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
   },
   bookImageContainer: {
-    height: '30%',
-    backgroundColor: 'white',
+    flex: 1,
+    width: width,
+    height: height,
+  },
+  pagination: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 0,
+    alignSelf: 'center',
+  },
+  pagingText: {
+    fontSize: 10,
+    color: '#a0a0a0',
+    margin: 3,
+  },
+  pagingActiveText: {
+    fontSize: 10,
+    color: 'white',
+    margin: 3,
   },
   bookInfoContainer: {
+    height: '50%',
     width: '95%',
     alignSelf: 'center',
     margin: 5,
@@ -356,10 +428,6 @@ const styles = StyleSheet.create({
   },
   functionContainer: {
     height: '10%',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
