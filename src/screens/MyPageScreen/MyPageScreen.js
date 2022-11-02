@@ -22,6 +22,7 @@ export const MyPageScreen = (data, {route}) => {
 
   const [userInfo, setUserInfo] = useState([]);
   const [userPosts, setUserPosts] = useState({});
+  const [userLikePosts, setUserLikePosts] = useState({});
   const [userDB, setUserDB] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sellListBtn, setSellListBtn] = useState(false);
@@ -42,6 +43,7 @@ export const MyPageScreen = (data, {route}) => {
   };
 
   let list = [];
+  let likeList = [];
   useEffect(() => {
     setLoading(true);
     setUserInfo(data.data);
@@ -51,7 +53,6 @@ export const MyPageScreen = (data, {route}) => {
       .then(snapshot => {
         const userData = snapshot.val();
         setUserDB(userData);
-        console.log(userData);
         setLoading(false);
         reference
           .ref('/posts/')
@@ -61,9 +62,22 @@ export const MyPageScreen = (data, {route}) => {
             for (var i in value.val()) {
               list.push(value.val()[i]);
               setUserPosts(list);
-              console.log(list);
             }
           });
+        reference
+          .ref(`users/${userInfo.uid}`)
+          .child('likes')
+          .on('value', snap => {
+            snap.forEach(item => {
+              reference.ref(`posts/${item.key}`).on('value', val => {
+                likeList.push(val.val());
+                setUserLikePosts(likeList);
+              });
+            });
+          });
+      })
+      .catch(err => {
+        console.log(err);
       });
   }, [userInfo]);
 
@@ -74,15 +88,60 @@ export const MyPageScreen = (data, {route}) => {
           navigation.navigate('Detail', {postNum: item.uploadDate})
         }>
         <View style={styles.listView}>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>
-            {item.bookTitle}
-          </Text>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
-            {item.bookAuthor}
-          </Text>
-          <Text style={styles.bookAP}>{item.bookPublisher}</Text>
-          <Text style={{fontSize: 12}}>{item.date}</Text>
-          <Text style={styles.price}>{item.tradePrice}원</Text>
+          <View style={styles.bookImage}>
+            <Image
+              source={{uri: item.stateImage[0]}}
+              resizeMode={'cover'}
+              style={{height: 100, width: 70}}
+            />
+          </View>
+          <View style={styles.bookDsc}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.bookTitle}>
+              {item.bookTitle}
+            </Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
+              {item.bookAuthor}
+            </Text>
+            <Text style={styles.bookAP}>{item.bookPublisher}</Text>
+            <Text style={{fontSize: 12}}>{item.date}</Text>
+            <Text style={styles.price}>{item.tradePrice}원</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderLikePostList = ({item}) => {
+    return (
+      <TouchableOpacity
+        onPress={() =>
+          navigation.navigate('Detail', {postNum: item.uploadDate})
+        }>
+        <View style={styles.listView}>
+          <View style={styles.bookImage}>
+            <Image
+              source={{uri: item.stateImage[0]}}
+              resizeMode={'cover'}
+              style={{height: 100, width: 70}}
+            />
+          </View>
+          <View style={styles.bookDsc}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.bookTitle}>
+              {item.bookTitle}
+            </Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
+              {item.bookAuthor}
+            </Text>
+            <Text style={styles.bookAP}>{item.bookPublisher}</Text>
+            <Text style={{fontSize: 12}}>{item.date}</Text>
+            <Text style={styles.price}>{item.tradePrice}원</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -121,9 +180,21 @@ export const MyPageScreen = (data, {route}) => {
         )}
       </View>
       <View style={styles.likeBookContainer}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setLikeListBtn(!likeListBtn)}>
           <Text style={styles.listText}>> 관심가는 책 목록</Text>
         </TouchableOpacity>
+        {likeListBtn && (
+          <View>
+            <FlatList
+              data={userLikePosts}
+              listKey={(item, index) => 'D' + index.toString()}
+              keyExtractor={(item, index) => 'D' + index.toString()}
+              renderItem={renderLikePostList}
+              disableVirtualization={false}
+              onEndReachedThreshold={0.2}
+            />
+          </View>
+        )}
       </View>
       <View style={styles.logoutBtnContainer}>
         <TouchableOpacity style={styles.logoutBtn} onPress={onLogoutPress}>
@@ -166,14 +237,22 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   listView: {
-    height: 130,
-    margin: 5,
-    borderTopWidth: 1,
-    borderTopColor: '#21D380',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 120,
+    margin: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#21D380',
+  },
+  bookImage: {
+    width: '20%',
+  },
+  bookDsc: {
+    width: '75%',
+    margin: 15,
   },
   bookTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#393E46',
   },
@@ -182,7 +261,7 @@ const styles = StyleSheet.create({
     color: '#393E46',
   },
   price: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: '#21D380',
   },

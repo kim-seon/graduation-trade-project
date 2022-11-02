@@ -189,25 +189,23 @@ const WriteScreen = ({navigation, route}) => {
   };
 
   const imageUpload = res => {
-    let imgArr = [];
     setLoading(true);
-    console.log('arr: ' + JSON.stringify(res));
+    let random = Math.round(Math.random() * 1000000);
     res?.map((file, index) => {
       const storageRef = storage().ref(
-        `images/${file.bucketId}/${file.bucketId + '_' + file.fileName}`,
+        `images/${random}/${random + '_' + file.fileName}`,
       );
       const task = storageRef.putFile(file.realPath);
       task.on(
         'state_changed',
         snapshot => {
-          console.log(snapshot);
+          console.log('uploading...');
         },
         err => console.log(err),
         () => {
           task.snapshot.ref.getDownloadURL().then(url => {
             setPhotosURL(old => [...old, url]);
             setLoading(false);
-            console.log(photosURL);
           });
         },
       );
@@ -239,7 +237,6 @@ const WriteScreen = ({navigation, route}) => {
   };
 
   const renderImage = ({item, index}) => {
-    console.log(item);
     return (
       <View>
         <Image

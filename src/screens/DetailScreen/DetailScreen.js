@@ -49,7 +49,6 @@ const DetailScreen = ({route}) => {
 
   useLayoutEffect(() => {
     setLoading(true);
-    console.log(height);
     LogBox.ignoreLogs([
       'Non-serializable values were found in the navigation state',
     ]);
@@ -65,7 +64,6 @@ const DetailScreen = ({route}) => {
       .on('value', snapshot => {
         const post = snapshot.val();
         setUserPost(post);
-        console.log(userPost.stateImage);
         const likesDate = () => {
           reference
             .ref(`/posts/${userPost.uploadDate}/likes/`)
@@ -81,7 +79,6 @@ const DetailScreen = ({route}) => {
               }
               setLoading(false);
             });
-          return likeUser;
         };
         likesDate();
       });
@@ -118,7 +115,8 @@ const DetailScreen = ({route}) => {
             .then(() => {
               reference
                 .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
-                .update({
+                .set({
+                  sellerKey: userPost.uploadDate,
                   sellerUid: userPost.sellerUid,
                   sellerNickname: userPost.seller,
                 });
@@ -164,7 +162,6 @@ const DetailScreen = ({route}) => {
     );
     if (slide !== activeIndex) {
       setActiveIndex(slide);
-      console.log(activeIndex);
     }
   };
 

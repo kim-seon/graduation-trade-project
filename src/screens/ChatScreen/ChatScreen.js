@@ -34,9 +34,9 @@ export const ChatScreen = (data, {route}) => {
         snapshot.forEach(item => {
           reference.ref(`posts/${item.key}`).on('value', child => {
             list.push({
-              bookTitle: child.val().bookTitle,
-              seller: child.val().seller,
-              sellerSchool: child.val().sellerSchool,
+              bookTitle: child.val() && child.val().bookTitle,
+              seller: child.val() && child.val().seller,
+              sellerSchool: child.val() && child.val().sellerSchool,
             });
             setPostList(list);
           });

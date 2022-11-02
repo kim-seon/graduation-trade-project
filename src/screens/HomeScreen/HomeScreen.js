@@ -7,6 +7,7 @@ import {
   FlatList,
   TouchableOpacity,
   BackHandler,
+  Image,
 } from 'react-native';
 import {FAB} from 'react-native-paper';
 import {firebase, orderByChild} from '@react-native-firebase/database';
@@ -46,6 +47,7 @@ export const HomeScreen = (data, {route}) => {
         for (var i in snapshot.val()) {
           list.push({
             ...list,
+            stateImage: snapshot.val()[i].stateImage[0],
             bookTitle: snapshot.val()[i].bookTitle,
             bookAuthor: snapshot.val()[i].bookAuthor,
             bookPublisher: snapshot.val()[i].bookPublisher,
@@ -71,18 +73,30 @@ export const HomeScreen = (data, {route}) => {
           })
         }>
         <View style={styles.listView}>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookTitle}>
-            {item.bookTitle}
-          </Text>
-          <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
-            {item.bookAuthor}
-          </Text>
-          <Text style={styles.bookAP}>{item.bookPublisher}</Text>
-          <Text style={styles.writerInfo}>
-            <Text style={styles.writerSchool}>{item.sellerSchool}</Text> |
-            {item.seller} | {item.date}
-          </Text>
-          <Text style={styles.price}>{item.tradePrice}원</Text>
+          <View style={styles.bookImage}>
+            <Image
+              source={{uri: item.stateImage}}
+              resizeMode={'cover'}
+              style={{height: 100, width: 70}}
+            />
+          </View>
+          <View style={styles.bookDsc}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.bookTitle}>
+              {item.bookTitle}
+            </Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.bookAP}>
+              {item.bookAuthor}
+            </Text>
+            <Text style={styles.bookAP}>{item.bookPublisher}</Text>
+            <Text style={styles.writerInfo}>
+              <Text style={styles.writerSchool}>{item.sellerSchool}</Text> |
+              {item.seller} | {item.date}
+            </Text>
+            <Text style={styles.price}>{item.tradePrice}원</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -116,26 +130,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
   },
   listView: {
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 130,
     margin: 5,
     padding: 15,
     backgroundColor: 'white',
     borderRadius: 5,
-    justifyContent: 'center',
+  },
+  bookImage: {
+    width: '20%',
+  },
+  bookDsc: {
+    width: '80%',
+    margin: 10,
   },
   bookTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: '#393E46',
   },
+  writerInfo: {
+    fontSize: 13,
+  },
   bookAP: {
+    fontSize: 13,
     color: '#393E46',
   },
   writerSchool: {
     color: '#FFD400',
   },
   price: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#21D380',
   },
