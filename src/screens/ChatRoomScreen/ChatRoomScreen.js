@@ -57,7 +57,6 @@ const ChatRoomScreen = ({route}) => {
 
   useLayoutEffect(() => {
     setLoading(true);
-    setBookInfo(route.params.sendInfo);
     setUserInfo({
       _id:
         (route.params.data && route.params.data.uid) ||
@@ -69,23 +68,31 @@ const ChatRoomScreen = ({route}) => {
         (route.params.data && route.params.data.email) ||
         route.params.userInfo.email,
     });
-    const changeValue = reference
-      .ref(`chats/${bookInfo.uploadDate}`)
-      .orderByChild('createdAt', 'desc')
-      .on('child_added', snap => {
-        const {_id, timestamp, text, user} = snap.val();
-        const createdAt = new Date(timestamp);
-        const message = {
-          _id,
-          createdAt,
-          text,
-          user,
-        };
-        setMessages(GiftedChat.append(...messages, message));
-      });
+    const changeValue = () =>
+      reference
+        .ref(
+          `chats/${
+            (route.params.book && route.params.book.uploadDate) ||
+            (route.params.sendInfo && route.params.sendInfo.uploadDate)
+          }`,
+        )
+        .orderByChild('createdAt', 'desc')
+        .on('child_added', snap => {
+          const {_id, createdAt, text, user} = snap.val();
+          const message = {
+            _id,
+            createdAt,
+            text,
+            user,
+          };
+          setMessages(prev => GiftedChat.append(prev, message));
+          console.log(messages);
+          setLoading(false);
+        });
+    changeValue();
     BackHandler.addEventListener('hardwareBackPress', handlePressBack);
     return () => {
-      changeValue;
+      setLoading(false);
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
     };
   }, []);
@@ -98,12 +105,16 @@ const ChatRoomScreen = ({route}) => {
       const {text, user} = newMessage[i];
       const message = {_id: random, text, user, createdAt: timestamp};
       reference
-        .ref(`chats/${bookInfo.uploadDate}`)
+        .ref(
+          `chats/${
+            (route.params.book && route.params.book.uploadDate) ||
+            (route.params.sendInfo && route.params.sendInfo.uploadDate)
+          }`,
+        )
         .push(message)
         .then(res => {
           setDbKey(res.key);
         });
-      setMessages([message, ...messages]);
     }
   };
 
@@ -178,6 +189,22 @@ const ChatRoomScreen = ({route}) => {
 
   return (
     <View style={{flex: 1}}>
+      <View style={styles.chatTitleContainer}>
+        <Text style={styles.chatTitleText}>
+          {(route.params.sendInfo && route.params.sendInfo.bookTitle) ||
+            (route.params.book && route.params.book.bookTitle)}
+        </Text>
+        <Text style={styles.chatTitleInfoText}>
+          {(route.params.sendInfo && route.params.sendInfo.seller) ||
+            (route.params.book && route.params.book.seller)}&nbsp;
+          <Text>
+            (
+            {(route.params.sendInfo && route.params.sendInfo.sellerSchool) ||
+              (route.params.book && route.params.book.sellerSchool)}
+            )
+          </Text>
+        </Text>
+      </View>
       <GiftedChat
         messages={messages}
         onSend={newMessage => onSend(newMessage)}
@@ -192,5 +219,22 @@ const ChatRoomScreen = ({route}) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  chatTitleContainer: {
+    height: '8%',
+    backgroundColor: 'white',
+    justifyContent: 'center',
+  },
+  chatTitleText: {
+    fontSize: 18,
+    alignSelf: 'center',
+    fontWeight: 'bold',
+  },
+  chatTitleInfoText: {
+    fontSize: 13,
+    alignSelf: 'center',
+  },
+});
 
 export default ChatRoomScreen;

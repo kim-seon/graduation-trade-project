@@ -89,9 +89,9 @@ const DetailScreen = ({route}) => {
     };
   }, []);
 
-  const onChatPress = () => {
-    navigation.navigate('ChatRoom', {sendInfo: userPost, userInfo: userInfo});
-  };
+  // const onChatPress = () => {
+  //   navigation.navigate('ChatRoom', {sendInfo: userPost, userInfo: userInfo});
+  // };
 
   const onHeartPress = async () => {
     setHeartPress(!heartPress);
@@ -294,7 +294,14 @@ const DetailScreen = ({route}) => {
       </View>
       <View style={styles.functionContainer}>
         {(userInfo && userInfo.uid) !== userPost.sellerUid ? (
-          <TouchableOpacity style={styles.chatBtn} onPress={() => onChatPress}>
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={() =>
+              navigation.navigate('ChatRoom', {
+                sendInfo: userPost,
+                userInfo: userInfo,
+              })
+            }>
             <Text style={styles.chatBtnText}>채팅 보내기</Text>
           </TouchableOpacity>
         ) : (

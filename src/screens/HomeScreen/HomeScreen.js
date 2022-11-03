@@ -77,7 +77,7 @@ export const HomeScreen = (data, {route}) => {
             <Image
               source={{uri: item.stateImage}}
               resizeMode={'cover'}
-              style={{height: 100, width: 70}}
+              style={{height: 100, width: 70, borderRadius: 5}}
             />
           </View>
           <View style={styles.bookDsc}>

@@ -59,7 +59,7 @@ export const MyPageScreen = (data, {route}) => {
           .orderByChild('sellerUid')
           .equalTo(userData.id)
           .on('value', value => {
-            for (var i in value.val()) {
+            for (var i in value.val()) { 
               list.push(value.val()[i]);
               setUserPosts(list);
             }
@@ -92,7 +92,7 @@ export const MyPageScreen = (data, {route}) => {
             <Image
               source={{uri: item.stateImage[0]}}
               resizeMode={'cover'}
-              style={{height: 100, width: 70}}
+              style={{height: 100, width: 70, borderRadius: 5,}}
             />
           </View>
           <View style={styles.bookDsc}>
@@ -125,7 +125,7 @@ export const MyPageScreen = (data, {route}) => {
             <Image
               source={{uri: item.stateImage[0]}}
               resizeMode={'cover'}
-              style={{height: 100, width: 70}}
+              style={{height: 100, width: 70, borderRadius: 5,}}
             />
           </View>
           <View style={styles.bookDsc}>

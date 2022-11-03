@@ -6,9 +6,11 @@ import {
   Pressable,
   FlatList,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import {firebase} from '@react-native-firebase/database';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
+import Moment from 'moment';
 
 export const ChatScreen = (data, {route}) => {
   const reference = firebase
@@ -26,6 +28,7 @@ export const ChatScreen = (data, {route}) => {
   useEffect(() => {
     setLoading(true);
     setUserInfo(data.data);
+    const currentDate = new Date();
     //console.log(userInfo);
     reference
       .ref('chats/')
@@ -33,12 +36,23 @@ export const ChatScreen = (data, {route}) => {
       .on('value', snapshot => {
         snapshot.forEach(item => {
           reference.ref(`posts/${item.key}`).on('value', child => {
-            list.push({
-              bookTitle: child.val() && child.val().bookTitle,
-              seller: child.val() && child.val().seller,
-              sellerSchool: child.val() && child.val().sellerSchool,
-            });
-            setPostList(list);
+            reference
+              .ref(`chats/${item.key}`)
+              .orderByChild('createdAt')
+              .limitToLast(1)
+              .on('child_added', snap => {
+                list.push({
+                  bookTitle: child.val() && child.val().bookTitle,
+                  seller: child.val() && child.val().seller,
+                  sellerSchool: child.val() && child.val().sellerSchool,
+                  stateImage: child.val() && child.val().stateImage[0],
+                  uploadDate: child.val() && child.val().uploadDate,
+                  message: snap.val() && snap.val().text,
+                  date: snap.val() && snap.val().createdAt,
+                });
+                setPostList(list);
+                setLoading(false);
+              });
           });
         });
       });
@@ -47,24 +61,35 @@ export const ChatScreen = (data, {route}) => {
   const renderPostList = ({item}) => {
     return (
       <TouchableOpacity
-        onPress={() => navigation.navigate('ChatRoom', {data: userInfo})}>
+        onPress={() =>
+          navigation.navigate('ChatRoom', {data: userInfo, book: item})
+        }>
         <View style={styles.listView}>
-          <View style={styles.chatInfo}>
-            <Text style={styles.chatNickname}>{item.seller}</Text>
-            <Text style={{marginLeft: 10, fontSize: 13, color: '#393E46'}}>
-              ({item.sellerSchool})
+          <View style={styles.listText}>
+            <View style={styles.chatInfo}>
+              <Text style={styles.chatNickname}>{item.seller}</Text>
+              <Text style={{marginLeft: 10, fontSize: 13, color: '#393E46'}}>
+                {item.sellerSchool}
+              </Text>
+              <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
+                | {Moment(item.date).format('HH:mm')}
+              </Text>
+            </View>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.chatBookTitle}>
+              {item.bookTitle}
             </Text>
-            <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
-              | 날짜
-            </Text>
+            <Text style={styles.chatPreview}>{item.message}</Text>
           </View>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={styles.chatBookTitle}>
-            {item.bookTitle}
-          </Text>
-          <Text style={styles.chatPreview}>최근 메시지 미리보기</Text>
+          <View style={styles.listImage}>
+            <Image
+              source={{uri: item.stateImage}}
+              resizeMode={'cover'}
+              style={{height: 70, width: 50, borderRadius: 5}}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -91,6 +116,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
   },
   listView: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     margin: 5,
     padding: 15,
     backgroundColor: 'white',
@@ -113,7 +140,7 @@ const styles = StyleSheet.create({
     color: '#a0a0a0',
   },
   chatPreview: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#393E46',
   },
   writerSchool: {
