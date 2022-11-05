@@ -19,6 +19,7 @@ export const ChatScreen = (data, {route}) => {
       'https://rntradebookproject-default-rtdb.asia-southeast1.firebasedatabase.app/',
     );
 
+  const isFocused = useIsFocused();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState({});
@@ -38,25 +39,32 @@ export const ChatScreen = (data, {route}) => {
           reference.ref(`posts/${item.key}`).on('value', child => {
             reference
               .ref(`chats/${item.key}`)
-              .orderByChild('createdAt')
-              .limitToLast(1)
-              .on('child_added', snap => {
-                list.push({
-                  bookTitle: child.val() && child.val().bookTitle,
-                  seller: child.val() && child.val().seller,
-                  sellerSchool: child.val() && child.val().sellerSchool,
-                  stateImage: child.val() && child.val().stateImage[0],
-                  uploadDate: child.val() && child.val().uploadDate,
-                  message: snap.val() && snap.val().text,
-                  date: snap.val() && snap.val().createdAt,
-                });
-                setPostList(list);
-                setLoading(false);
+              .orderByChild('user/_id')
+              .equalTo(userInfo.uid + '')
+              .on('value', shot => {
+                console.log(shot.val());
+                reference
+                  .ref(`chats/${item.key}`)
+                  .orderByChild('createdAt')
+                  .limitToLast(1)
+                  .on('child_added', snap => {
+                    list.push({
+                      bookTitle: child.val() && child.val().bookTitle,
+                      seller: child.val() && child.val().seller,
+                      sellerSchool: child.val() && child.val().sellerSchool,
+                      stateImage: child.val() && child.val().stateImage[0],
+                      uploadDate: child.val() && child.val().uploadDate,
+                      message: snap.val() && snap.val().text,
+                      date: snap.val() && snap.val().createdAt,
+                    });
+                    setPostList(list);
+                    setLoading(false);
+                  });
               });
           });
         });
       });
-  }, []);
+  }, [isFocused]);
 
   const renderPostList = ({item}) => {
     return (
@@ -72,7 +80,7 @@ export const ChatScreen = (data, {route}) => {
                 {item.sellerSchool}
               </Text>
               <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
-                | {Moment(item.date).format('HH:mm')}
+                | {Moment(item.date).format('YYYY/MM/DD HH:mm')}
               </Text>
             </View>
             <Text

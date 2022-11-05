@@ -36,6 +36,7 @@ const WriteScreen = ({navigation, route}) => {
     );
   const [userInfo, setUserInfo] = useState({});
   const [userDB, setUserDB] = useState({});
+  const [updateData, setUpdateData] = useState({});
   const [selectedMenu, setSelectedMenu] = useState();
   const [selectedBefore, setSelectedBefore] = useState();
   const [selectedTrade, setSelectedTrade] = useState();
@@ -50,31 +51,67 @@ const WriteScreen = ({navigation, route}) => {
   const [inputDsc, setInputDsc] = useState('');
   const [tradeMethod, setTradeMethod] = useState('');
   const [directPlace, setdirectPlace] = useState('');
+  const [originDate, setOriginDate] = useState();
   const [isLoading, setIsLoading] = useState(true);
   const [selectImgBtn, setSelectImgBtn] = useState(false);
   const [imgBtnTxt, setimgBtnTxt] = useState('사진 업로드(최대 3장)');
   const [selectedBookInfo, setSelectedBookInfo] = useState([]);
   const [infoVisible, setInfoVisible] = useState(false);
-  const [uploadDate, setUploadDate] = useState();
   const [loading, setLoading] = useState(false);
-  const [photosURL, setPhotosURL] = useState([]); // 업로드 완료된 사진 링크들
+  const [photosURL, setPhotosURL] = useState({uri: ''}); // 업로드 완료된 사진 링크들
   const [progress, setProgress] = useState(0); // 업로드 진행상태
 
   useEffect(() => {
     setLoading(true);
     LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+    setUpdateData(route.params.updateData);
     setUserInfo(route.params.data);
+
+    if (updateData) {
+      setInfoVisible(true);
+      setOriginDate(updateData && updateData.uploadDate);
+      setInputPrice(updateData && updateData.tradePrice);
+      setSearchKeyword(updateData && updateData.bookTitle);
+      if (updateData && updateData.bookState === '새거') {
+        setBookState('새거');
+        setSelectedMenu(1);
+      } else if (updateData && updateData.bookState === '약간 중고') {
+        setBookState('약간 중고');
+        setSelectedMenu(2);
+      } else if (updateData && updateData.bookState === '완전 중고') {
+        setBookState('완전 중고');
+        setSelectedMenu(3);
+      } else setLoading(false);
+      if (updateData && updateData.tradeWay === '직거래') {
+        setTradeMethod('직거래');
+        setSelectedTrade('direct');
+        setdirectPlace(updateData.tradeDirect && updateData.tradeDirect);
+      } else if (updateData && updateData.tradeWay === '택배') {
+        setTradeMethod('택배');
+        setSelectedTrade('ship');
+      } else setLoading(false);
+      setPhotosURL(updateData && updateData.stateImage);
+      setInputDsc(updateData && updateData.bookDsc);
+      setSelectedBookInfo([
+        updateData && updateData.bookCover,
+        updateData && updateData.bookTitle,
+        updateData && updateData.bookAuthor,
+        updateData && updateData.bookPublisher,
+        updateData && updateData.bookIsbn,
+        updateData && updateData.bookPrice,
+        updateData && updateData.bookPubDate,
+      ]);
+    }
     reference.ref(`/users/${userInfo.uid}`).on('value', async snapshot => {
       const userData = await snapshot.val();
       setUserDB(userData);
       console.log(userDB);
-      console.log(selectedImages);
       setLoading(false);
     });
-  }, [userInfo.uid]);
+  }, [userInfo.uid, updateData, photosURL]);
 
-  let submitDate = null;
-  let printDate = null;
+  var submitDate = null;
+  var printDate = null;
 
   const onSubmitPress = e => {
     e.preventDefault();
@@ -82,17 +119,17 @@ const WriteScreen = ({navigation, route}) => {
     submitDate = Moment(currentDate).format('YYYYMMDDHHmmss');
     printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
 
-    imageUpload();
-
     let writeData = {
       seller: route.params.data.displayName,
       sellerUid: route.params.data.uid,
+      sellState: 'sell',
       sellerSchool: userDB && userDB.school,
       stateImage: photosURL && photosURL,
       bookCover: selectedBookInfo[0],
       bookTitle: selectedBookInfo[1],
       bookAuthor: selectedBookInfo[2],
       bookPublisher: selectedBookInfo[3],
+      bookIsbn: selectedBookInfo[4],
       bookPrice: selectedBookInfo[5]
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, ','),
@@ -112,6 +149,51 @@ const WriteScreen = ({navigation, route}) => {
       .then(() => {
         navigation.navigate('Detail', {
           id: writeData,
+          loginUser: userInfo,
+        });
+      })
+      .catch(function (err) {
+        console.log(err);
+      });
+  };
+
+  const onUpdatePress = e => {
+    e.preventDefault();
+    const currentDate = new Date();
+    printDate = Moment(currentDate).format('YYYY년 MM월 DD일 HH:mm');
+    const updateDate = Moment(currentDate).format('YYYYMMDDHHmmss');
+
+    let upData = {
+      seller: route.params.data.displayName,
+      sellerUid: route.params.data.uid,
+      sellState: 'sell',
+      sellerSchool: userDB && userDB.school,
+      stateImage: photosURL && photosURL,
+      bookCover: selectedBookInfo[0],
+      bookTitle: selectedBookInfo[1],
+      bookAuthor: selectedBookInfo[2],
+      bookPublisher: selectedBookInfo[3],
+      bookIsbn: selectedBookInfo[4],
+      bookPrice: selectedBookInfo[5]
+        .toString()
+        .replace(/\B(?=(\d{3})+(?!\d))/g, ','),
+      bookPubDate: selectedBookInfo[6],
+      tradePrice: inputPrice.replace(/\B(?=(\d{3})+(?!\d))/g, ','),
+      bookState: bookState,
+      bookDsc: inputDsc,
+      tradeWay: tradeMethod,
+      tradeDirect: directPlace && directPlace,
+      date: printDate,
+      uploadDate: originDate,
+      updateDate: updateDate,
+    };
+
+    reference
+      .ref(`/posts/${originDate}`)
+      .update(upData)
+      .then(() => {
+        navigation.navigate('Detail', {
+          id: upData,
           loginUser: userInfo,
         });
       })
@@ -189,6 +271,7 @@ const WriteScreen = ({navigation, route}) => {
   };
 
   const imageUpload = res => {
+    const imgArr = [];
     setLoading(true);
     let random = Math.round(Math.random() * 1000000);
     res?.map((file, index) => {
@@ -203,8 +286,10 @@ const WriteScreen = ({navigation, route}) => {
         },
         err => console.log(err),
         () => {
-          task.snapshot.ref.getDownloadURL().then(url => {
-            setPhotosURL(old => [...old, url]);
+          task.snapshot.ref.getDownloadURL().then(downloadURL => {
+            imgArr.push(downloadURL);
+            setPhotosURL(imgArr);
+            console.log(photosURL);
             setLoading(false);
           });
         },
@@ -226,14 +311,9 @@ const WriteScreen = ({navigation, route}) => {
   };
 
   const onDelete = value => {
-    const data =
-      selectedImages &&
-      selectedImages.filter(
-        item =>
-          item.localIdentifier &&
-          item.localIdentifier !== value.localIdentifier,
-      );
-    setSelectedImages(data);
+    const data = photosURL && photosURL.filter(item => item !== value);
+    setPhotosURL(data);
+    console.log(photosURL);
   };
 
   const renderImage = ({item, index}) => {
@@ -245,12 +325,12 @@ const WriteScreen = ({navigation, route}) => {
           }}
           style={styles.imgUpload}
         />
-        {/* <TouchableOpacity
+        <TouchableOpacity
           onPress={() => onDelete(item)}
           activeOpacity={0.9}
           style={styles.buttonDelete}>
           <Text style={styles.titleDelete}>삭제</Text>
-        </TouchableOpacity> */}
+        </TouchableOpacity>
       </View>
     );
   };
@@ -490,7 +570,7 @@ const WriteScreen = ({navigation, route}) => {
       </Modal>
       <View style={styles.infoContainer}>
         <View>
-          {photosURL.length > 0 && (
+          {photosURL && photosURL.length > 0 && (
             <FlatList
               contentContainerStyle={{width: '100%', alignItems: 'center'}}
               data={photosURL}
@@ -570,7 +650,11 @@ const WriteScreen = ({navigation, route}) => {
           )}
         </View>
       </View>
-      <CustomButton onPress={onSubmitPress} text="등록하기" />
+      {updateData ? (
+        <CustomButton onPress={onUpdatePress} text="수정하기" />
+      ) : (
+        <CustomButton onPress={onSubmitPress} text="등록하기" />
+      )}
     </ScrollView>
   );
 };

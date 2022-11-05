@@ -17,7 +17,9 @@ import firestore from '@react-native-firebase/firestore';
 import {firebase} from '@react-native-firebase/database';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Entypo from 'react-native-vector-icons/Entypo';
 import {SliderBox} from 'react-native-image-slider-box';
+import UpdateMenu from '../../components/UpdateMenu';
 
 const {width} = Dimensions.get('window');
 const height = (width * 100) / 80;
@@ -25,16 +27,19 @@ const height = (width * 100) / 80;
 const DetailScreen = ({route}) => {
   const [userInfo, setUserInfo] = useState({});
   const [userPost, setUserPost] = useState({});
+  const [stateText, setStateText] = useState('');
   const [likeUser, setLikeUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [menuPress, setMenuPress] = useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
 
   const isFocused = useIsFocused();
   const navigation = useNavigation();
 
   const handlePressBack = () => {
-    if (navigation.canGoBack()) {
+    if (route.params.id && navigation.canGoBack()) {
       navigation.navigate('Tab', {screen: '홈'});
       return true;
     }
@@ -62,6 +67,7 @@ const DetailScreen = ({route}) => {
         }`,
       )
       .on('value', snapshot => {
+        setLoading(false);
         const post = snapshot.val();
         setUserPost(post);
         const likesDate = () => {
@@ -84,17 +90,14 @@ const DetailScreen = ({route}) => {
       });
     BackHandler.addEventListener('hardwareBackPress', handlePressBack);
     return () => {
-      setLoading(false);
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
+      return () => setLoading(false);
     };
   }, []);
 
-  // const onChatPress = () => {
-  //   navigation.navigate('ChatRoom', {sendInfo: userPost, userInfo: userInfo});
-  // };
-
   const onHeartPress = async () => {
     setHeartPress(!heartPress);
+    setLoading(true);
 
     const increment = firebase.database.ServerValue.increment(1);
     const decrement = firebase.database.ServerValue.increment(-1);
@@ -113,6 +116,7 @@ const DetailScreen = ({route}) => {
               userNickname: userInfo.displayName,
             })
             .then(() => {
+              setLoading(false);
               reference
                 .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
                 .set({
@@ -135,12 +139,31 @@ const DetailScreen = ({route}) => {
             .child(userInfo.uid)
             .remove()
             .then(() => {
+              setLoading(false);
               reference
                 .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
                 .remove();
             })
             .catch(err => console.log(err));
         });
+    }
+  };
+
+  const SellState = () => {
+    if (userPost && userPost.sellState === 'sell') {
+      return <Text style={styles.sellStateText}>판매중</Text>;
+    } else if (userPost && userPost.sellState === 'reserve') {
+      return <Text style={styles.sellStateText}>예약중</Text>;
+    } else if (userPost && userPost.sellState === 'done') {
+      return <Text style={styles.sellStateText}>판매완료</Text>;
+    } else return null;
+  };
+
+  const onMenuPress = () => {
+    setLoading(true);
+    setOpenMenu(!openMenu);
+    if (openMenu === true) {
+      setLoading(false);
     }
   };
 
@@ -169,7 +192,7 @@ const DetailScreen = ({route}) => {
     <View style={styles.container}>
       <View style={styles.bookImageContainer}>
         <FlatList
-          data={userPost.stateImage}
+          data={userPost && userPost.stateImage}
           listKey={(item, index) => 'D' + index.toString()}
           keyExtractor={(item, index) => item + index}
           renderItem={renderImage}
@@ -178,25 +201,48 @@ const DetailScreen = ({route}) => {
           pagingEnabled={true}
           showsHorizontalScrollIndicator={false}
         />
+        {userInfo.uid === (userPost && userPost.sellerUid) ? (
+          <View style={styles.menuBarContainer}>
+            <TouchableOpacity onPress={onMenuPress}>
+              <Entypo name="dots-three-vertical" size={20} color={'#fff'} />
+            </TouchableOpacity>
+            {openMenu ? (
+              <UpdateMenu
+                postData={
+                  (route.params.id && route.params.id.uploadDate) ||
+                  (route.params.post && route.params.post.uploadDate)
+                }
+                userData={userInfo}
+                data={userPost && userPost}
+              />
+            ) : null}
+          </View>
+        ) : null}
         <View style={styles.pagination}>
-          {userPost.stateImage?.map((item, index) => {
-            return (
-              <Text
-                key={index}
-                style={
-                  index === activeIndex
-                    ? styles.pagingActiveText
-                    : styles.pagingText
-                }>
-                ●
-              </Text>
-            );
-          })}
+          {userPost &&
+            userPost.stateImage?.map((item, index) => {
+              return (
+                <Text
+                  key={index}
+                  style={
+                    index === activeIndex
+                      ? styles.pagingActiveText
+                      : styles.pagingText
+                  }>
+                  ●
+                </Text>
+              );
+            })}
         </View>
       </View>
       <View style={styles.bookInfoContainer}>
         <ScrollView style={{flexGrow:1}}>
-          <Text style={styles.bookTitleText}>{userPost.bookTitle}</Text>
+          <View style={{flexDirection: 'row'}}>
+            <SellState />
+            <Text style={styles.bookTitleText}>
+              {userPost && userPost.bookTitle}
+            </Text>
+          </View>
           <View style={{flexDirection: 'row'}}>
             <Text
               style={[
@@ -208,7 +254,7 @@ const DetailScreen = ({route}) => {
             <Text
               numberOfLines={2}
               style={[styles.writerInfoText, {width: '80%'}]}>
-              {userPost.bookAuthor}
+              {userPost && userPost.bookAuthor}
             </Text>
           </View>
           <View style={{flexDirection: 'row'}}>
@@ -222,7 +268,7 @@ const DetailScreen = ({route}) => {
             <Text
               numberOfLines={2}
               style={[styles.writerInfoText, {width: '80%'}]}>
-              {userPost.bookPublisher}
+              {userPost && userPost.bookPublisher}
             </Text>
           </View>
           <View style={{flexDirection: 'row'}}>
@@ -236,7 +282,7 @@ const DetailScreen = ({route}) => {
             <Text
               numberOfLines={2}
               style={[styles.writerInfoText, {width: '80%'}]}>
-              {userPost.bookPubDate}
+              {userPost && userPost.bookPubDate}
             </Text>
           </View>
           <View
@@ -248,27 +294,32 @@ const DetailScreen = ({route}) => {
           />
           <View style={{flexDirection: 'row'}}>
             <Text style={styles.bookOrignPriceText}>
-              {userPost.bookPrice}원
+              {userPost && userPost.bookPrice}원
             </Text>
-            <Text style={styles.bookPriceText}>{userPost.tradePrice}원</Text>
+            <Text style={styles.bookPriceText}>
+              {userPost && userPost.tradePrice}원
+            </Text>
           </View>
           <View style={styles.bookStateInfoContainer}>
             <View style={styles.bookStateText}>
               <Text style={styles.detailText}>판매자 정보</Text>
               <Text style={styles.dscText}>
-                {userPost.sellerSchool} | {userPost.seller}
+                {userPost && userPost.sellerSchool} |{' '}
+                {userPost && userPost.seller}
               </Text>
             </View>
             <View style={styles.bookStateText}>
               <Text style={styles.detailText}>책 상태</Text>
-              <Text style={styles.dscText}>{userPost.bookState}</Text>
+              <Text style={styles.dscText}>
+                {userPost && userPost.bookState}
+              </Text>
             </View>
             <View style={styles.bookTradeText}>
               <Text style={styles.detailText}>선호거래방식</Text>
               <Text style={styles.dscText}>
-                {userPost.tradeWay}
-                {userPost.tradeDirect ? (
-                  <Text>({userPost.tradeDirect})</Text>
+                {userPost && userPost.tradeWay}
+                {userPost && userPost.tradeDirect ? (
+                  <Text>({userPost && userPost.tradeDirect})</Text>
                 ) : (
                   ''
                 )}
@@ -283,17 +334,17 @@ const DetailScreen = ({route}) => {
                   justifyContent: 'space-between',
                 }}>
                 <Text>업로드</Text>
-                <Text>{userPost.date}</Text>
+                <Text>{userPost && userPost.date}</Text>
               </View>
               <Text style={[styles.detailText, {marginTop: 10}]}>
-                {userPost.bookDsc}
+                {userPost && userPost.bookDsc}
               </Text>
             </View>
           </View>
         </ScrollView>
       </View>
       <View style={styles.functionContainer}>
-        {(userInfo && userInfo.uid) !== userPost.sellerUid ? (
+        {(userInfo && userInfo.uid) !== (userPost && userPost.sellerUid) ? (
           <TouchableOpacity
             style={styles.chatBtn}
             onPress={() =>
@@ -352,6 +403,11 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
+  menuBarContainer: {
+    position: 'absolute',
+    right: 5,
+    top: 15,
+  },
   pagination: {
     flexDirection: 'row',
     position: 'absolute',
@@ -373,6 +429,14 @@ const styles = StyleSheet.create({
     width: '95%',
     alignSelf: 'center',
     margin: 5,
+  },
+  sellStateText: {
+    padding: 5,
+    backgroundColor: '#21D380',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    color: '#F2F2F2',
+    borderRadius: 5,
   },
   bookTitleText: {
     fontSize: 20,

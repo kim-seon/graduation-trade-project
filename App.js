@@ -15,6 +15,9 @@ import MainStackNavigation from './src/navigations/MainStack';
 import WriteScreen from './src/screens/WriteScreen/WriteScreen';
 import DetailScreen from './src/screens/DetailScreen/DetailScreen';
 import ChatRoomScreen from './src/screens/ChatRoomScreen/ChatRoomScreen';
+import SellBookListScreen from './src/screens/SellBookListScreen/SellBookListScreen';
+import LikePostsListListScreen from './src/screens/LikePostsListScreen/LikePostsListScreen';
+import UpdateMenu from './src/components/UpdateMenu';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -63,6 +66,21 @@ const App = () => {
             <Stack.Screen
               name="ChatRoom"
               component={ChatRoomScreen}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="SellBookList"
+              component={SellBookListScreen}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="LikePostsList"
+              component={LikePostsListListScreen}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="Menu"
+              component={UpdateMenu}
               options={{headerShown: false}}
             />
           </>

@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     alignSelf: 'center',
     fontWeight: 'bold',
+    color: '#393E46',
   },
   chatTitleInfoText: {
     fontSize: 13,

@@ -43,7 +43,7 @@ export const HomeScreen = (data, {route}) => {
       .ref('/posts/')
       .orderByChild('uploadDate')
       .on('value', snapshot => {
-        //console.log(snapshot.val());
+        setLoading(false);
         for (var i in snapshot.val()) {
           list.push({
             ...list,
@@ -53,15 +53,26 @@ export const HomeScreen = (data, {route}) => {
             bookPublisher: snapshot.val()[i].bookPublisher,
             sellerSchool: snapshot.val()[i].sellerSchool,
             seller: snapshot.val()[i].seller,
+            sellState: snapshot.val()[i].sellState,
             date: snapshot.val()[i].date,
             tradePrice: snapshot.val()[i].tradePrice,
             uploadDate: snapshot.val()[i].uploadDate,
           });
           setPostList(list);
-          setLoading(false);
         }
+        return () => setLoading(false);
       });
   }, [isFocused, userInfo]);
+
+  const SellState = ({item}) => {
+    if (item && item.sellState === 'sell') {
+      return <Text style={styles.sellStateText}>판매중</Text>;
+    } else if (item && item.sellState === 'reserve') {
+      return <Text style={styles.sellStateText}>예약중</Text>;
+    } else if (item && item.sellState === 'done') {
+      return <Text style={styles.sellStateText}>판매완료</Text>;
+    } else return null;
+  };
 
   const renderPostList = ({item}) => {
     return (
@@ -95,7 +106,10 @@ export const HomeScreen = (data, {route}) => {
               <Text style={styles.writerSchool}>{item.sellerSchool}</Text> |
               {item.seller} | {item.date}
             </Text>
-            <Text style={styles.price}>{item.tradePrice}원</Text>
+            <View style={{flexDirection: 'row', marginTop: 3}}>
+              <SellState item={item} />
+              <Text style={styles.price}> {item.tradePrice}원</Text>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -159,6 +173,15 @@ const styles = StyleSheet.create({
   },
   writerSchool: {
     color: '#FFD400',
+  },
+  sellStateText: {
+    padding: 3,
+    backgroundColor: '#21D380',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    fontSize: 12,
+    color: 'white',
+    borderRadius: 5,
   },
   price: {
     fontSize: 16,
