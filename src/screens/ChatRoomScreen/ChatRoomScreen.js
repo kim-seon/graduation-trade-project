@@ -86,7 +86,6 @@ const ChatRoomScreen = ({route}) => {
             user,
           };
           setMessages(prev => GiftedChat.append(prev, message));
-          console.log(messages);
           setLoading(false);
         });
     changeValue();

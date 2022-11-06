@@ -28,9 +28,9 @@ const LikePostsListListScreen = ({route}) => {
     if (item && item.sellState === 'sell') {
       return <Text style={styles.sellStateText}>판매중</Text>;
     } else if (item && item.sellState === 'reserve') {
-      return <Text style={styles.sellStateText}>예약중</Text>;
+      return <Text style={styles.sellStateRsvText}>예약중</Text>;
     } else if (item && item.sellState === 'done') {
-      return <Text style={styles.sellStateText}>판매완료</Text>;
+      return <Text style={styles.sellStateDoneText}>판매완료</Text>;
     } else return null;
   };
 
@@ -137,6 +137,24 @@ const styles = StyleSheet.create({
   sellStateText: {
     padding: 3,
     backgroundColor: '#21D380',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    fontSize: 12,
+    color: 'white',
+    borderRadius: 5,
+  },
+  sellStateRsvText: {
+    padding: 3,
+    backgroundColor: '#FFD400',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    fontSize: 12,
+    color: 'white',
+    borderRadius: 5,
+  },
+  sellStateDoneText: {
+    padding: 3,
+    backgroundColor: '#A0A0A0',
     alignSelf: 'center',
     fontWeight: 'bold',
     fontSize: 12,

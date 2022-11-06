@@ -10,6 +10,7 @@ import {
   BackHandler,
   LogBox,
   Image,
+  Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
@@ -71,6 +72,7 @@ const DetailScreen = ({route}) => {
         const post = snapshot.val();
         setUserPost(post);
         const likesDate = () => {
+          setLoading(false);
           reference
             .ref(`/posts/${userPost.uploadDate}/likes/`)
             .orderByChild('userEmail')
@@ -93,11 +95,11 @@ const DetailScreen = ({route}) => {
       BackHandler.removeEventListener('hardwareBackPress', handlePressBack);
       return () => setLoading(false);
     };
-  }, []);
+  }, [isFocused, route.params.id, route.params.loginUser, route.params.post, userInfo.email, userPost.uploadDate]);
 
   const onHeartPress = async () => {
-    setHeartPress(!heartPress);
     setLoading(true);
+    setHeartPress(!heartPress);
 
     const increment = firebase.database.ServerValue.increment(1);
     const decrement = firebase.database.ServerValue.increment(-1);
@@ -116,7 +118,6 @@ const DetailScreen = ({route}) => {
               userNickname: userInfo.displayName,
             })
             .then(() => {
-              setLoading(false);
               reference
                 .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
                 .set({
@@ -124,6 +125,7 @@ const DetailScreen = ({route}) => {
                   sellerUid: userPost.sellerUid,
                   sellerNickname: userPost.seller,
                 });
+              setLoading(false);
             })
             .catch(err => console.log(err));
         });
@@ -139,23 +141,29 @@ const DetailScreen = ({route}) => {
             .child(userInfo.uid)
             .remove()
             .then(() => {
-              setLoading(false);
               reference
                 .ref(`users/${userInfo.uid}/likes/${userPost.uploadDate}`)
                 .remove();
+              setLoading(false);
             })
             .catch(err => console.log(err));
         });
     }
   };
 
+  const sharePress = () => {
+    Share.share({
+      message: `대학생 중고책 거래 앱 트레이북!📖\n\n책 제목: ${userPost.bookTitle}\n저자: ${userPost.bookAuthor}/출판사: ${userPost.bookPublisher}\n가격을 확인하려면 앱을 이용해보세요!`,
+    });
+  };
+
   const SellState = () => {
     if (userPost && userPost.sellState === 'sell') {
       return <Text style={styles.sellStateText}>판매중</Text>;
     } else if (userPost && userPost.sellState === 'reserve') {
-      return <Text style={styles.sellStateText}>예약중</Text>;
+      return <Text style={styles.sellStateRsvText}>예약중</Text>;
     } else if (userPost && userPost.sellState === 'done') {
-      return <Text style={styles.sellStateText}>판매완료</Text>;
+      return <Text style={styles.sellStateDoneText}>판매완료</Text>;
     } else return null;
   };
 
@@ -356,7 +364,9 @@ const DetailScreen = ({route}) => {
             <Text style={styles.chatBtnText}>채팅 보내기</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.chatBtn}>
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={() => navigation.navigate('Tab', {screen: '채팅방'})}>
             <Text style={styles.chatBtnText}>내 채팅방</Text>
           </TouchableOpacity>
         )}
@@ -378,7 +388,7 @@ const DetailScreen = ({route}) => {
               />
             )}
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => sharePress()}>
             <Ionicons
               name="ios-share-social"
               size={30}
@@ -438,7 +448,24 @@ const styles = StyleSheet.create({
     color: '#F2F2F2',
     borderRadius: 5,
   },
+  sellStateRsvText: {
+    padding: 5,
+    backgroundColor: '#FFD400',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    color: '#F2F2F2',
+    borderRadius: 5,
+  },
+  sellStateDoneText: {
+    padding: 5,
+    backgroundColor: '#A0A0A0',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    color: '#F2F2F2',
+    borderRadius: 5,
+  },
   bookTitleText: {
+    width: '85%',
     fontSize: 20,
     fontWeight: '600',
     color: '#393E46',

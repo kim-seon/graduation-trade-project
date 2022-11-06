@@ -10,7 +10,9 @@ const MainScreen = ({navigation}) => {
         <Text style={styles.mainLogoText}>트레이북</Text>
       </View>
       <View style={styles.mainNextContainer}>
-        <Text style={styles.nextText}>이용을 위해서는 회원이 되어주세요!</Text>
+        <Text style={styles.nextText}>
+          이용을 위해서는 로그인이 필요합니다!
+        </Text>
         <MaterialIcons
           name="arrow-drop-down"
           size={25}
@@ -20,7 +22,7 @@ const MainScreen = ({navigation}) => {
         <Pressable
           onPress={() => navigation.navigate('Register')}
           style={styles.mainStartBtn}>
-          <Text style={styles.text}>시작하기</Text>
+          <Text style={styles.text}>회원가입</Text>
         </Pressable>
         <Pressable
           onPress={() => navigation.navigate('Login')}

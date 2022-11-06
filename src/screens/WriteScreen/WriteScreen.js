@@ -58,20 +58,23 @@ const WriteScreen = ({navigation, route}) => {
   const [selectedBookInfo, setSelectedBookInfo] = useState([]);
   const [infoVisible, setInfoVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [photosURL, setPhotosURL] = useState({uri: ''}); // 업로드 완료된 사진 링크들
+  const [photosURL, setPhotosURL] = useState({}); // 업로드 완료된 사진 링크들
   const [progress, setProgress] = useState(0); // 업로드 진행상태
 
   useEffect(() => {
     setLoading(true);
-    LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested',
+      'Non-serializable values were found in the navigation state',
+    ]);
     setUpdateData(route.params.updateData);
     setUserInfo(route.params.data);
+    setInfoVisible(false);
 
     if (updateData) {
       setInfoVisible(true);
       setOriginDate(updateData && updateData.uploadDate);
       setInputPrice(updateData && updateData.tradePrice);
-      setSearchKeyword(updateData && updateData.bookTitle);
       if (updateData && updateData.bookState === '새거') {
         setBookState('새거');
         setSelectedMenu(1);
@@ -83,7 +86,6 @@ const WriteScreen = ({navigation, route}) => {
         setSelectedMenu(3);
       } else setLoading(false);
       if (updateData && updateData.tradeWay === '직거래') {
-        setTradeMethod('직거래');
         setSelectedTrade('direct');
         setdirectPlace(updateData.tradeDirect && updateData.tradeDirect);
       } else if (updateData && updateData.tradeWay === '택배') {

@@ -24,8 +24,10 @@ export const ChatScreen = (data, {route}) => {
   const [loading, setLoading] = useState(false);
   const [userInfo, setUserInfo] = useState({});
   const [postList, setPostList] = useState({});
+  const [userDB, setUserDB] = useState({});
 
   let list = [];
+  let userList = [];
   useEffect(() => {
     setLoading(true);
     setUserInfo(data.data);
@@ -35,22 +37,40 @@ export const ChatScreen = (data, {route}) => {
       .ref('chats/')
       .child('')
       .on('value', snapshot => {
+        setLoading(false);
         snapshot.forEach(item => {
           reference.ref(`posts/${item.key}`).on('value', child => {
+            reference
+              .ref(`chats/${item.key}`)
+              .orderByChild('createdAt')
+              .limitToFirst(1)
+              .on('child_added', chat => {
+                reference
+                  .ref(`/users/${chat.val().user._id}`)
+                  .once('value')
+                  .then(info => {
+                    const userData = info.val();
+                    setUserDB(userData);
+                    console.log(userDB);
+                    setLoading(false);
+                  });
+              });
             reference
               .ref(`chats/${item.key}`)
               .orderByChild('user/_id')
               .equalTo(userInfo.uid + '')
               .on('value', shot => {
-                console.log(shot.val());
                 reference
                   .ref(`chats/${item.key}`)
                   .orderByChild('createdAt')
                   .limitToLast(1)
                   .on('child_added', snap => {
                     list.push({
+                      chatUser: userDB && userDB.nickname,
+                      chatUserSchool: userDB && userDB.school,
                       bookTitle: child.val() && child.val().bookTitle,
                       seller: child.val() && child.val().seller,
+                      sellerUid: child.val() && child.val().sellerUid,
                       sellerSchool: child.val() && child.val().sellerSchool,
                       stateImage: child.val() && child.val().stateImage[0],
                       uploadDate: child.val() && child.val().uploadDate,
@@ -64,7 +84,7 @@ export const ChatScreen = (data, {route}) => {
           });
         });
       });
-  }, [isFocused]);
+  }, [data.data, isFocused]);
 
   const renderPostList = ({item}) => {
     return (
@@ -75,13 +95,29 @@ export const ChatScreen = (data, {route}) => {
         <View style={styles.listView}>
           <View style={styles.listText}>
             <View style={styles.chatInfo}>
-              <Text style={styles.chatNickname}>{item.seller}</Text>
-              <Text style={{marginLeft: 10, fontSize: 13, color: '#393E46'}}>
-                {item.sellerSchool}
-              </Text>
-              <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
-                | {Moment(item.date).format('YYYY/MM/DD HH:mm')}
-              </Text>
+              {item.sellerUid === userInfo.uid ? (
+                <>
+                  <Text style={styles.chatNickname}>{item.chatUser}</Text>
+                  <Text
+                    style={{marginLeft: 10, fontSize: 13, color: '#393E46'}}>
+                    {item.chatUserSchool}
+                  </Text>
+                  <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
+                    | {Moment(item.date).format('YYYY/MM/DD HH:mm')}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.chatNickname}>{item.seller}</Text>
+                  <Text
+                    style={{marginLeft: 10, fontSize: 13, color: '#393E46'}}>
+                    {item.sellerSchool}
+                  </Text>
+                  <Text style={{marginLeft: 5, fontSize: 13, color: '#393E46'}}>
+                    | {Moment(item.date).format('YYYY/MM/DD HH:mm')}
+                  </Text>
+                </>
+              )}
             </View>
             <Text
               numberOfLines={1}
@@ -105,14 +141,20 @@ export const ChatScreen = (data, {route}) => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={postList}
-        listKey={(item, index) => 'D' + index.toString()}
-        keyExtractor={(item, index) => 'D' + index.toString()}
-        renderItem={renderPostList}
-        disableVirtualization={false}
-        onEndReachedThreshold={0.2}
-      />
+      {postList.length > 0 ? (
+        <FlatList
+          data={postList}
+          listKey={(item, index) => 'D' + index.toString()}
+          keyExtractor={(item, index) => 'D' + index.toString()}
+          renderItem={renderPostList}
+          disableVirtualization={false}
+          onEndReachedThreshold={0.2}
+        />
+      ) : (
+        <View>
+          <Text style={styles.nullListText}>개설된 채팅방이 없어요 😅</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -153,5 +195,15 @@ const styles = StyleSheet.create({
   },
   writerSchool: {
     color: '#FFD400',
+  },
+  nullListText: {
+    justifyContent: 'center',
+    alignSelf: 'center',
+    margin: 15,
+    padding: 10,
+    fontSize: 16,
+    color: '#393E46',
+    borderRadius: 5,
+    backgroundColor: 'white',
   },
 });
