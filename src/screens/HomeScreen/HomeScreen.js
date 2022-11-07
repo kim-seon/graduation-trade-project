@@ -70,7 +70,7 @@ export const HomeScreen = (data, {route}) => {
     } else if (item && item.sellState === 'reserve') {
       return <Text style={styles.sellStateRsvText}>예약중</Text>;
     } else if (item && item.sellState === 'done') {
-      return <Text style={styles.sellStateDoneText}>판매완료</Text>;
+      return <Text style={styles.sellStateDoneText}>거래완료</Text>;
     } else return null;
   };
 

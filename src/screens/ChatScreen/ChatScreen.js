@@ -66,6 +66,7 @@ export const ChatScreen = (data, {route}) => {
                   .limitToLast(1)
                   .on('child_added', snap => {
                     list.push({
+                      chatUserUid: userDB && userDB.id,
                       chatUser: userDB && userDB.nickname,
                       chatUserSchool: userDB && userDB.school,
                       bookTitle: child.val() && child.val().bookTitle,

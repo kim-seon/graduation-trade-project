@@ -33,7 +33,6 @@ const DetailScreen = ({route}) => {
   const [loading, setLoading] = useState(false);
   const [heartPress, setHeartPress] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [menuPress, setMenuPress] = useState(false);
   const [openMenu, setOpenMenu] = useState(false);
 
   const isFocused = useIsFocused();

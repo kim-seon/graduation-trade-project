@@ -9,6 +9,7 @@ import {
   BackHandler,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Entypo from 'react-native-vector-icons/Entypo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import {firebase} from '@react-native-firebase/database';
@@ -20,6 +21,7 @@ import {
   SystemMessage,
 } from 'react-native-gifted-chat';
 import {useIsFocused, useNavigation} from '@react-navigation/native';
+import ChatStateMenu from '../../components/ChatStateMenu';
 
 const ChatRoomScreen = ({route}) => {
   const reference = firebase
@@ -42,6 +44,8 @@ const ChatRoomScreen = ({route}) => {
   const [uid, setUid] = useState('');
   const [reportUser, setReportUser] = useState(null);
   const [dbKey, setDbKey] = useState('');
+  const [openMenu, setOpenMenu] = useState(false);
+  const [sellState, setSellState] = useState('');
 
   const navigation = useNavigation();
 
@@ -89,6 +93,44 @@ const ChatRoomScreen = ({route}) => {
           setLoading(false);
         });
     changeValue();
+    reference
+      .ref(`/posts/`)
+      .orderByChild('sellState')
+      .equalTo('sell')
+      .on('value', snap => setSellState(''));
+    reference
+      .ref(`/posts/`)
+      .orderByChild('sellState')
+      .equalTo('reserve')
+      .on('value', snap => {
+        reference
+          .ref(`/posts/`)
+          .orderByChild('reserveUser')
+          .equalTo(route.params.book && route.params.book.chatUserUid)
+          .on('value', child => setSellState('예약중'));
+      });
+    reference
+      .ref(`/posts/`)
+      .orderByChild('sellState')
+      .equalTo('done')
+      .on('value', snap => {
+        reference
+          .ref(`/posts/`)
+          .orderByChild('donUser')
+          .equalTo(route.params.book && route.params.book.chatUserUid)
+          .on('value', child => {
+            setSellState('거래완료');
+            reference
+              .ref(
+                `/posts/${
+                  (route.params.book && route.params.book.uploadDate) ||
+                  (route.params.sendInfo && route.params.sendInfo.uploadDate)
+                }`,
+              )
+              .child('reserveUser')
+              .remove();
+          });
+      });
     BackHandler.addEventListener('hardwareBackPress', handlePressBack);
     return () => {
       setLoading(false);
@@ -186,23 +228,61 @@ const ChatRoomScreen = ({route}) => {
     );
   }
 
+  const onMenuPress = () => {
+    setLoading(true);
+    setOpenMenu(!openMenu);
+    if (openMenu === true) {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={{flex: 1}}>
       <View style={styles.chatTitleContainer}>
-        <Text style={styles.chatTitleText}>
-          {(route.params.sendInfo && route.params.sendInfo.bookTitle) ||
-            (route.params.book && route.params.book.bookTitle)}
-        </Text>
-        <Text style={styles.chatTitleInfoText}>
-          {(route.params.sendInfo && route.params.sendInfo.seller) ||
-            (route.params.book && route.params.book.seller)}&nbsp;
-          <Text>
-            (
-            {(route.params.sendInfo && route.params.sendInfo.sellerSchool) ||
-              (route.params.book && route.params.book.sellerSchool)}
-            )
+        {(route.params.book && route.params.book.sellerUid) ===
+        (userInfo && userInfo._id) ? (
+          <View style={styles.menuBarContainer}>
+            <TouchableOpacity onPress={onMenuPress}>
+              <Entypo name="dots-three-vertical" size={20} color={'#A0A0A0'} />
+            </TouchableOpacity>
+            {openMenu ? <ChatStateMenu postData={route.params.book} /> : null}
+          </View>
+        ) : null}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          <Text style={styles.chatTitleText}>
+            {(route.params.sendInfo && route.params.sendInfo.bookTitle) ||
+              (route.params.book && route.params.book.bookTitle)}
           </Text>
-        </Text>
+          {sellState.length > 1 ? (
+            <Text style={styles.chatStateText}>{sellState}</Text>
+          ) : null}
+        </View>
+        {(route.params.book && route.params.book.sellerUid) ===
+        (userInfo && userInfo._id) ? (
+          <Text style={styles.chatTitleInfoText}>
+            {route.params.book && route.params.book.chatUser}
+            &nbsp;
+            <Text>
+              ({route.params.book && route.params.book.chatUserSchool})
+            </Text>
+          </Text>
+        ) : (
+          <Text style={styles.chatTitleInfoText}>
+            {(route.params.sendInfo && route.params.sendInfo.seller) ||
+              (route.params.book && route.params.book.seller)}&nbsp;
+            <Text>
+              (
+              {(route.params.sendInfo && route.params.sendInfo.sellerSchool) ||
+                (route.params.book && route.params.book.sellerSchool)}
+              )
+            </Text>
+          </Text>
+        )}
       </View>
       <GiftedChat
         messages={messages}
@@ -224,16 +304,32 @@ const styles = StyleSheet.create({
     height: '8%',
     backgroundColor: 'white',
     justifyContent: 'center',
+    padding: 5,
+  },
+  menuBarContainer: {
+    zIndex: 1,
+    position: 'absolute',
+    right: 5,
+    top: 20,
   },
   chatTitleText: {
     fontSize: 18,
-    alignSelf: 'center',
     fontWeight: 'bold',
     color: '#393E46',
   },
   chatTitleInfoText: {
     fontSize: 13,
     alignSelf: 'center',
+  },
+  chatStateText: {
+    marginLeft: 5,
+    fontSize: 13,
+    padding: 3,
+    justifyContent: 'center',
+    color: '#393E46',
+    fontWeight: 'bold',
+    backgroundColor: '#FFD400',
+    borderRadius: 5,
   },
 });
 
